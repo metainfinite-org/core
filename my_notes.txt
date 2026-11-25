@@ -1,0 +1,109 @@
+
+
+
+who builds this: im a single developer on a small budget. I'm proficient in C++, but am thinking of doing this project in other languages - which would you suggest?
+what the 2 demos are for: the one for a company of 10-20 ppl is so they can start using it and to get value out of it and maybe I can get paid, the other demo is for later on when I launch it online for a larger audience
+what should be better than notion and etc: its the custom types and apps and that you'll be able to express any functionality within the system
+
+open problems:
+
+- Privacy and access control - yes, through grants and keys and encryption, but also when an app posts a batch on-chain it only posts the merkle root commitment (mandatory) + an IPFS hash of some kind of a header for the batch (optional) - so data can not only be encrypted in the off-chain events but also it can simply not be fetchable by the public internet at all and it can be fetchable only within some company intranet. You said this affects the demo - how? Can't it simply be delayed? What needs to be figured out now in advance?
+- Erasure vs. proofs - you're correct for the proposal to also contain the hash of the payload for the specific event so that the contents can be deleted but the hash of it can be retained, but is it really a part of phase 0? Can't this be done once we start merkelizing the off-chain events - or am I missing something?
+- Data availability - no need for explicit economic incentives - if a service doesn't hold data that it should - then it's a bad service and it will lose customers. The web currently works that way (mostly).
+- Spam and Sybil resistance - the system can indeed be spammed, and regarding off-chain events (new data types & other spam) - this is left to the social incentives on top of this system and some infrastructure services might start flagging some identities (apps, users) as spammers and stop indexing and storing their content. Nobody is forced to store your junk - social consensus ftw. regarding account creation on-chain - that is a separate topic - when the final system is being launched there will either be a price for creating new accounts or some kind of throttle - not currently worth thinking about (but note it for the long term).
+- Type convergence - its true that there will be many duplicate types or minor variations, but apps can choose to work with some "canonical" comment type and not show others by default, or maybe only after some other comment type becomes widely used would the apps accomodate them too - so there's a kind of forcing function to not invent too many new types simply because they won't get automatically used by others - the system will evolve based on usage. It's also possible to make mappings between types as you suggested
+- Global queries and indexing - regarding full text search - hopefully most events in this system will be typed. But who maintains the indexes & runs the infra? Apps will either run on their own infrastructure (remember that apps can post an IP address on-chain with a tx so that they can be contacted through traditional internet protocols), but there will also be infrastructure companies that host many apps so appd developers don't have to run their own infra, and infra/cloud companies can charge apps based on queries/usage by the users.
+- Which chain - only the biggest apps like facebook/twitter will post batches on every block or every few blocks - smaller ones might do it once a minute or even less often. Also the design is such that end users practically never have to touch the chain and even in the cases when they do (like binding a key or migrating to a different IDM) most of these operations will be done on their behalf by the IDM and that activity will be more compact. within 100kb blocks every 10 seconds we can fit a surprising amount of activity and blocks can be faster and bigger too. I haven't settled on a separate L1 or a rollup yet. IDMs can batch the operations of their users.
+- Large media - I was thinking of putting everything inside of the batches, but the batch itself can be a tree of IPFS blobs in a hierarchy and with headers so they can be selectively fetched. But yes, this can be flexible - very large files can indeed be only referenced in the batch itself with a hash commitment and some way to fetch them (again ipfs hash is a possibility).
+- Key recovery - absolutely, but is now the time? I don't think so.
+- The query and sort expression language - we need to think about that
+- Replay cost over time - yes, there will be checkpoints by infra/cloud companies and building the state should be deterministic.
+
+update architecture files accordingly.
+
+
+
+
+
+
+
+
+
+
+v moqta sistema kato sortira6 vector moje vseki swap na 2 elementa povreme na running-a na algorituma da ti bude otdelen event s otdelen adres, i moje dori da generira6 temporary state-a na vectora i dori tezi temporary states da budat adresiruemi, i da moje da branch-va6 ot any intermediate state
+
+
+
+privacy
+
+
+reputation, page-rank, multiperspectival views, converngence, weights
+
+
+
+in genesis: “Let there be light”
+
+
+
+Views composed of views. Yes, composition is unavoidable, and you'd be building a layout engine. Reuse what exists rather than inventing one. The proven shape is a component tree: each view has props (parameters like the selected node) and children (other views, referenced by address), data comes from bound queries, and layout uses flexbox/grid semantics (stack, row, grid). Existing declarative UI specs worth studying are Adaptive Cards, Retool/Appsmith-style JSON configs, and Notion's block model. Render with React from a small whitelist of blocks (list, tree, graph, form, button, text, stack/row).
+
+
+
+== TODO look at:
+second brain
+https://x.com/imryven/status/2115046979659055476
+https://x.com/imryven/status/2124137409646330226
+https://x.com/Bober_smart/status/2110437719562416233
+
+obsidian
+
+TODO look into
+Palantir Foundry, Airtable, Retool: the ontology and config-driven apps.
+
+
+The system is expressed in terms of the building blocks that are created within it
+A system thats expressed within itself
+the system is to a large extent expressed in terms of building blocks which are expressed inside of it
+
+
+
+Filtering in queries based on payload?
+
+
+
+regarding signatures - don't think about public/private keys for now. In this system there can be an app like "google" in which you create your account - so the google app makes it onchain on your behalf, but it is initially an owned account - google own your account. But once you bind a public key (which can happen later - or never) - that's when your account becomes sovereign. So the funnel for new users is easier - they don't have to think about keys initially. But then any app can start publishing events for any user, right? wrong. the google app can publish events on behalf of all users that 
+this is 
+IDMs
+
+
+recruit people with status to help moderate the system - this will be a single view system - it will not allow the computation of parallel views
+
+
+separate algorithms from data types - keep it modular
+scripts should be definable within the system and when a script becomes important enough it gets added to the system as a precompile
+
+
+
+Link with discord
+Living wiki
+
+
+authentication
+signatures
+
+also keep in mind im using AI for the first time and haven't coded in years and I haven't yet set up any skills and whatnot
+
+Open design questions for the demo
+- Authentication: since identities are just integers and everything is centralized, do you want real signatures (users sign events with keys) or just trust the server and pass a user id? Signing is closer to the real system but adds work.
+- Type schemas: does a "new type" event carry a schema (e.g. JSON Schema) that the server validates payloads against, or are payloads free-form in the demo?
+- Bootstrap: the first type event needs a type to be typed by. A self-referential "type of types" event is the usual answer.
+
+
+
+
+
+
+
+
+write everything that you understand about this system - and not just about the demo, but also how it will eventuall be hooked up to the blockchain in the future and how the design is future proof
+
