@@ -18,10 +18,10 @@ Prove the model end-to-end on one trusted server, with every identifier and stru
 - Instant batching: each event its own batch, published on creation, `seq = 1`
 - Genesis seed script (creator, IDM, tool apps, meta-type, primitives, base types, first configs)
 - Projection engine with the validity rules: grants & revocation, `user == app`, supersede (single-author), delete, proposals & merge bot, soft/hard references, type lineage, app config heads
-- Single default IDM owning all accounts; OAuth sign-in; lazy auto-approved grants; revocation UI
+- Single default IDM owning all accounts; sign-in via a **dev login** locally (pick or type a username, no password) and OIDC/OAuth on a server; lazy auto-approved grants; revocation UI
 - Shell ("browser in the browser"), engine with the block whitelist
 - Hand-coded Type Maker, App Maker, event-graph visualizer
-- At least one fully declarative app: a board/feed with comments, likes, upvotes, reddit-style sorting
+- At least one fully declarative app: reddit-style posts and nested comments with votes (up/down) and new/top/hot sorting, built with the makers
 - Server-side schema validation at insert
 - Reads: an exact-version endpoint (immutable, cacheable) plus a separate small status lookup (latest version, deleted/hidden, revealed). The UI shows the latest version by default and history on request. Every read goes through `can_read`, which also hides deleted and moderated events (§3)
 - Shell owns the browser URL: apps, views and events are linkable (§10)
@@ -169,9 +169,9 @@ CREATE TABLE custody (identity BIGINT, human_account BIGINT, role TEXT);        
 
 ## 8. Apps in the demo
 
-- **Hand-coded tools:** Type Maker, App Maker, Graph Visualizer (+ the shell and the IDM's account/grants screens).
-- **Declarative:** a board/feed (posts, comments, likes, upvotes, hot/new/top sorting). For the company deployment, whatever the team builds itself (`10`). No pages or rich-text documents, no full-text search and no importers for now: the goal is new, strongly typed kinds of events, not traditional documents.
-- **Seeded types:** meta-type, primitives, view, action, manifest, grant, revoke, edit (supersede), delete, comment, like, upvote, proposal, merge.
+- **Hand-coded tools:** Type Maker, App Maker; Graph Visualizer after the first demo (+ the shell and the IDM's account/grants screens).
+- **Declarative:** reddit-style posts and comments with votes and hot/new/top sorting. For the company deployment, whatever the team builds itself (`10`). No pages or rich-text documents, no full-text search and no importers for now: the goal is new, strongly typed kinds of events, not traditional documents.
+- **Seeded types:** meta-type, primitives, view, action, manifest, type view, type annotation, grant, revoke, edit (supersede), delete, post, comment, reaction, like, vote, proposal, merge.
 
 ## 9. Implementation stack
 
@@ -208,7 +208,13 @@ The shell is a "browser inside the browser", and it **owns the real browser URL*
 ## 11. Deployment and configuration
 
 - **Priority order:** run locally on any machine with Node and Postgres (install, one command to create the database, seed genesis and start), then the same on one server, then a cloud (AWS or similar) for the public demo.
-- **[P] A `deployment.yml` file** holds the deployment's parameters: name, `first_identity` (1 for local and company deployments, e.g. 1,000,001 for the public demo), block interval, sign-in provider. Secrets (database URL, OAuth client secret) come from environment variables, not from the file.
+- **Local prerequisites (Windows 11, macOS or Linux):**
+  - **Node.js**, the current LTS. It includes npm.
+  - **pnpm**: `npm install -g pnpm`. Newer Node versions no longer bundle Corepack, so don't rely on it.
+  - **PostgreSQL** 16 or newer. Either install it natively (on Windows: the EDB installer or `winget`, which also brings `psql`), or run it in Docker.
+  - **Git.**
+  - **Not needed globally:** TypeScript and the other tools are dev dependencies of the repo, installed by `pnpm install` and run through its scripts. Docker is optional, for Postgres or for packaging.
+- **[P] A `deployment.yml` file** holds the deployment's parameters: name, `first_identity` (1 for local and company deployments, e.g. 1,000,001 for the public demo), block interval (default 1 s), sign-in provider (dev login or OIDC/OAuth). Secrets (database URL, OAuth client secret) come from environment variables, not from the file.
 - **Genesis parameters are read once**, when genesis runs on an empty database, and are recorded in genesis itself, e.g. in the creator's `create_identity` tx. The database is then self-describing, and editing the file later doesn't change an existing deployment.
 - **Deployments never merge their data** (decided), so their id ranges may overlap: local and company start at 1. Interesting **types and apps move between deployments as bundles** with symbolic references, imported as new events (`05` §6).
 
@@ -220,3 +226,9 @@ The goal: the public demo moves onto the blockchain plus off-chain batches with 
 - **Opted-out identities become ghosts, not holes.** Their events keep their addresses, but the import publishes only their leaf hashes (`02` §7): nothing about the event is revealed, not even its type or what it referenced. Other people's events that reference a ghost stay valid, and their comments remain browsable. The UI shows the target as a **ghost** ("not carried over"), distinct from deleted and from private. The identity itself still exists on-chain, owned by the IDM, with no data.
 - **No user keys in the public demo.** **[P]** Server-held user keys would add breach risk without adding trust, because the server holds them anyway, so there is no sovereignty gained. Users don't need keys for the import either: their events are authorized by grants (`03` §4), and only batch roots and chain txs need signatures, made by the apps and the IDM at launch. At launch, the IDM issues each user a master key and encrypts their private events with it before the trees are built (`02` §8). Binding personal keys stays optional, as in the final design (`03` §3).
 - **Merkle trees before launch: optional.** **[P]** Building trees in a background "shadow" job (never on the write path) would exercise the pipeline early. It needs only provisional algorithms (`02` §9). It is not required: the import builds trees retroactively anyway.
+
+## 13. Tooling (decided)
+
+- **pnpm workspaces** as a monorepo, one package per replaceable piece: log, projector, rules, server, engine, shell, makers.
+- **Fastify** for the server, **Kysely** as the thin SQL layer, **Vite + React** for the frontend.
+- **Vitest** for tests.

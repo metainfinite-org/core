@@ -7,6 +7,21 @@
 
 
 
+- Node.js (the current LTS version), which includes npm: winget install OpenJS.NodeJS.LTS
+- pnpm: npm install -g pnpm. Newer Node versions no longer bundle Corepack, so install pnpm directly.
+- PostgreSQL 16 or newer: the EDB installer from postgresql.org, or winget search postgresql to find the current package. It includes psql.
+
+
+
+
+
+
+
+
+can a type inherit from the meta type?
+
+
+
 
 
 
@@ -98,7 +113,7 @@ Open design questions for the demo
 
 
 
-
+ToC - we aim to publish all data eventually on the real system, but we reserve the right to not do it in case significant changes to the system are made and that is simply impossible
 
 
 

@@ -128,6 +128,7 @@ CREATE TABLE events (
   payload    JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL,
   visibility SMALLINT NOT NULL DEFAULT 0,  -- [P] 0 public, 1 private; shared-with-set later (06 §7)
+  supersedes BOOLEAN NOT NULL DEFAULT FALSE,  -- [P] the supersede flag: ref = previous version (04 §3)
   PRIMARY KEY (app, batch, usr, seq),
   CHECK (app > 0 AND batch > 0 AND usr > 0 AND seq > 0)
 );

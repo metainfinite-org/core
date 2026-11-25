@@ -10,7 +10,7 @@ Sizes are relative (S < M < L < XL). **Team: one developer on a small budget** (
 Decide what can't change once data exists:
 - address scheme, reserved zeros, **reserved id range size and genesis ids**
 - envelope fields, `version`, flags; JSON payload rules (`02` §4)
-- schema language; meta-type fields; the genesis event list
+- the genesis event list (schema language and meta-type fields are decided: JSON Schema, lean meta-type, `05` §2)
 - deployment config: `deployment.yml`, `first_identity` (`07` §11)
 - URL scheme of the shell (`07` §10)
 - Already settled: TypeScript (`07` §9); config authored by the app identity (`03` §8).
@@ -37,7 +37,7 @@ Decide what can't change once data exists:
 **Exit:** rebuild from scratch reproduces the projection hash; property tests on validity pass.
 
 ### Phase 3 — Identity & auth (M)
-- Single default IDM; OAuth sign-in; account creation via `create_identity`
+- Single default IDM; dev login locally, OIDC/OAuth on a server (`07` §2); account creation via `create_identity`
 - Lazy grants, revocation UI; `authorize(session, app, user)`; custody table
 
 **Exit:** an app can post for a user only with a valid grant; revoking stops later events but not earlier ones.
@@ -45,12 +45,12 @@ Decide what can't change once data exists:
 ### Phase 4 — Shell & engine (XL)
 - Shell: launcher, session, grant prompts, navigation, browser-URL routing (`07` §10)
 - Engine: component tree, props/children, bound queries, flex/grid layout, block whitelist (list, tree, graph, form, button, text, stack, row), rendering fallback via type lineage and display templates, unpublished marker
-- **Hand-coded Type Maker and App Maker: the main deliverable**, plus the Graph Visualizer
+- **Hand-coded Type Maker and App Maker: the main deliverable.** The Graph Visualizer comes after the first demo
 
 **Exit:** a user creates a type and an app from the UI and uses it.
 
 ### Phase 5 — First demo target: reddit-style comments (L)
-- **A reddit-style comment system expressed through the Type Maker and App Maker, and nothing more:** posts, nested comments, upvotes, hot/new/top sorting
+- **A reddit-style comment system expressed through the Type Maker and App Maker, and nothing more:** posts, nested comments, votes (up/down, one per user per target via the reaction constraint), hot/new/top sorting, plus sign-in, grants, edit and delete. App Maker v1: pick types, a layout from a fixed menu (list, nested tree), a sort from a fixed menu, actions from generated forms, a name. No view composition yet
 - Sorting uses built-in live counts hard-coded in the kernel; no expression language yet
 - Genesis written as a symbolic data file, ready for later iterations (`05` §6)
 - **Stretch:** Type Maker and App Maker re-expressed as config
@@ -142,14 +142,14 @@ P0 ─► P1 ─► P2 ─► P3 ─► P4 ─► P5 ─► P6
 1. Deterministic genesis; rebuild matches.
 2. Sign in, open an app (lazy grant), post valid events; revoke works as-of.
 3. Create a type and an app from the UI.
-4. A declarative board with comments, likes, upvotes, sorting.
+4. A declarative reddit-style board with nested comments, votes and sorting.
 5. Edit, delete, propose and auto-merge with provenance.
 6. Company deployment running on one node; public deployment with a documented load profile.
 7. Export → retroactive merkle proofs verify.
 
 ## 6. First week
 
-1. Commit these docs; close the remaining P0 questions (`09` §3, items 1, 3 and 4).
+1. Commit these docs; close the remaining P0 question (`09` §3, item 1: the reserved range for the real system; demos use `first_identity`).
 2. Write the genesis listing as data (a YAML/JSON file) before any code.
 3. Create the log schema and the atomic write path; write the determinism test first.
 4. Build the throwaway replay spike against 10k synthetic events.

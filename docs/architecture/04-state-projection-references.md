@@ -32,6 +32,8 @@ Demo: one event per batch per tx, so the inner loop has one iteration.
 ## 3. Edits, versions and forks
 
 - An edit is a **new event that supersedes** the previous one by referencing it. The original never changes.
+- **[P] How an edit is marked:** the envelope's **supersede flag** (`02` §1.1). With it set, `ref` means "previous version of", not "reply to". Without it, a comment that references a comment is ambiguous: a reply, or a new version? The core needs to know which, because heads are core state. The new version has the same type as the original, or a newer version of that type.
+- **What an edit keeps:** relations that belong to the lineage, such as which post a comment replies to, are taken from the lineage's root event. An edit therefore can't move a comment to another post; extra references go in the payload (`01` §5).
 - **Version chains are single-author:** a supersede is valid only if authored by the **same identity** as the original (through any app, with that identity's valid auth or signature). Consequence: every valid update is authored by one identity, so that identity's IDM is the only party that has to track versions (`06`). No cross-IDM watching, no edit-grant chains.
 - **Head** = latest valid version in replay order. If two valid edits supersede the same version, the later one is the head; the other remains a branch in the history.
 - **Anyone can fork:** a fork is a new event by someone else referencing the original. It never affects the original's head.
@@ -52,7 +54,7 @@ Demo: one event per batch per tx, so the inner loop has one iteration.
 
 - A delete is a **delete event referencing the target**. The target is unchanged and keeps its slot in the sequence, so nothing that references it dangles.
 - **What a delete means is decided by interpreters, not by low-level type rules.** Deletability becomes an **emergent social rule**: a feed hides deleted posts; a prediction tracker may keep showing a politician's deleted prediction, marked as deleted. Rules about this can themselves be expressed as events/config and evolve.
-- **[P]** A type may carry an optional **deletion hint** — guidance for apps, never enforcement.
+- **[P]** A **deletion hint** can be published as a type annotation (`05` §2): guidance for apps, never enforcement.
 - Technical minimum: the meta-type, primitives and grants can't be meaningfully deleted, because interpretation depends on them. "Deleting" a type with live instances only hides it from type pickers; its instances remain interpretable.
 - A delete event is always accepted into the log.
 - **Erasure mechanism:** hosts drop the payload and keep its hash. Proofs and signatures still verify because leaves commit to `hash(payload)` (`02` §7). **[O]** The legal and moderation *position* (who must erase what, on whose request) still needs an answer before public launch.

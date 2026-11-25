@@ -31,8 +31,8 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 23 | Encoding | CBOR-deterministic vs custom layout: decided in P8, lean CBOR | O (P8) | 02 §4 |
 | 24 | Types | Primitives are genesis type events; NFC strings; minimal varints | D | 02 §5 |
 | 25 | Types | float64 storable with canonical encoding; exact ops only in consensus paths | D | 02 §5 |
-| 26 | Types | Versioning by supersession; no version field; forks allowed | D | 05 §3 |
-| 27 | Types | `extends` separate from `supersedes`; rendering fallback; display template | D | 05 §3 |
+| 26 | Types | Versioning by supersession (now the generic edit mechanism, decision 172); no version field; forks allowed | D | 05 §3 |
+| 27 | Types | `extends` separate from `supersedes`; rendering fallback; display template (now an annotation, decision 160) | D | 05 §3 |
 | 28 | Types | Single inheritance first | P | 05 §3 |
 | 29 | Meta-type | Self-referential; extended by superseding; unknown fields preserved | D | 05 §2 |
 | 30 | Validation | Server, projection, clients eventually; demo = server-side | D | 04 §8 |
@@ -55,7 +55,7 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 47 | Edits | Shared editing via proposals auto-merged by the owner, with provenance | D | 04 §4 |
 | 48 | Edits | Merge policy, patch format | P / O | 04 §4 |
 | 49 | Delete | Delete events; meaning is emergent and decided by interpreters | D | 04 §5 |
-| 50 | Delete | Optional deletion hint | P | 04 §5 |
+| 50 | Delete | Optional deletion hint, as a type annotation | P | 04 §5 |
 | 51 | Refs | Soft vs hard references | D | 04 §6 |
 | 52 | Refs | Show but don't reference other apps' unpublished events | D | 04 §6 |
 | 53 | Refs | Creation-time enforcement with queued requests | D | 04 §6 |
@@ -163,6 +163,23 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 155 | Crypto | Hybrid classical + PQ during the transition; prefer hash-based signatures | P | 02 §9 |
 | 156 | Scripting | Expressions: Datalog/CEL-like; script nodes: deterministic, metered WebAssembly | P | 06 §6 |
 | 157 | Collections | Sort keys over pinned-collation primitives; types may suggest default keys; heterogeneous collections allowed | P | 10 §8 |
+| 158 | Demo | First demo includes sign-in, grants, revocation, edit, delete; Graph Visualizer later | D | 08 P5 |
+| 159 | Types | Lean meta-type: name, schema, extends, constraints, extensions | D | 05 §2 |
+| 160 | Types | Hints (display template, sort keys, deletion, visibility) in a `hints` namespace of `extensions`, overridable by type-annotation events | D | 05 §2 |
+| 161 | Types | Uniqueness constraints in types (`unique_per`, latest wins) | D | 05 §2 |
+| 162 | Types | `reaction` base type; `like` and `vote` (+1/−1) extend it | D | 05 §6 |
+| 163 | Types | JSON Schema (deterministic subset) as the schema language | D | 05 §3 |
+| 164 | Genesis | Meta-type schema uses JSON Schema native keywords, so there is no regress | D | 05 §2 |
+| 165 | Genesis | Genesis message in the meta-type's extensions; block 1 message to be chosen later | D / O | 05 §2 |
+| 166 | Auth | Dev login locally; OIDC/OAuth on servers | D | 07 §2 |
+| 167 | App Maker | v1: types, fixed layouts, fixed sorts, generated-form actions, name; no view composition | D | 08 P5 |
+| 168 | Deploy | Block interval 1 s by default, in `deployment.yml` | D | 07 §11 |
+| 169 | Tooling | pnpm monorepo, Fastify, Kysely, Vite + React, Vitest | D | 07 §13 |
+| 170 | Privacy | Types carry no visibility default; apps set defaults | D | 06 §7 |
+| 171 | Types | Constraints: fixed v1 vocabulary (`unique`, `ref_type`, `author_is`); scope exact type or family; subtypes only tighten | P | 05 §2 |
+| 172 | Types | No `supersedes` field; type versions are edits; superseding is a claim, adoption is social consensus | D | 05 §3 |
+| 173 | Envelope | Supersede flag: `ref` = previous version; lineage relations come from the root | P | 04 §3 |
+| 174 | Deploy | Local prerequisites: Node LTS, pnpm, PostgreSQL 16+, Git; Docker optional | D | 07 §11 |
 
 ## 2. Withdrawn or superseded (don't re-propose without a new reason)
 
@@ -194,6 +211,8 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | Leaf committing to the payload bytes directly | Leaf commits to `hash(payload)` |
 | "Personal" types readable only by their author | Per-event visibility with defaults |
 | SSZ for the envelope | One encoding (DAG-CBOR); per-field proofs cost more than the ~100-byte envelope |
+| `display_template`, `deletion_hint`, `suggested_visibility` as meta-type fields | Hints in `extensions` + annotation events |
+| `supersedes` field in the meta-type | Generic edit mechanism with the supersede flag |
 | Wiki workflow as the company deployment's main feature | The team builds its own types and apps |
 | An event URL that returns the latest version by default | Exact-version URL plus a separate status lookup |
 | Canonical binary encoding as a Phase-0 decision | JSON in the demos; decided in P8 |
@@ -204,8 +223,8 @@ Phase-0 blockers first.
 
 1. **Reserved id range** size; genesis creator and IDM ids.
 2. ~~**Canonical encoding**~~ — deferred to P8; the demos use JSON (decision 107). Lean: DAG-CBOR for everything (decision 153).
-3. **Schema language** for type payloads.
-4. **Meta-type field list** for genesis.
+3. ~~**Schema language**~~ — resolved: JSON Schema subset (decision 163).
+4. ~~**Meta-type field list**~~ — resolved: lean meta-type (decision 159).
 5. ~~**Config authorship**~~ — resolved: the app identity, revisit once code exists (decision 43).
 6. **Same-batch hard dependencies** — adopt?
 7. **Edge activation rule** as the safety net — confirm.

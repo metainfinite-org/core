@@ -11,24 +11,57 @@ Types, views, actions, manifests, grants, comments, likes — all are events, al
 ## 2. The meta-type
 
 - The first off-chain event of genesis. Its `type_ref` points at **itself**, which ends the regress.
-- Defines what a type event carries: `name`, `schema`, `display_template`, `extends`, `supersedes`, optional `deletion_hint`, a namespaced `extensions` slot.
-- **Extending it:** the meta-type is itself a type, so a new meta-type version supersedes the old one and adds fields. Types created under the old one stay valid. Interpreters **preserve and ignore unknown fields** (forward compatibility). Because changing the meta-type changes how everything is read, it goes through **rule versioning** — the canonical meta-type is the one the active rule set names (`03` §9), never "whatever the creator last published".
+- **A lean meta-type (decided).** A type event carries only what must be fixed together with the type:
+  - `name`
+  - `schema` (JSON Schema subset, §3)
+  - `extends`
+  - `constraints`: rules the projection enforces (below)
+  - `extensions` (below)
+
+  There is no `supersedes` field: a new version of a type is an ordinary edit, using the same generic mechanism as every other event (§3, `04` §3).
+- **Constraints [P].** A small, fixed vocabulary interpreted by the kernel in v1, later expressible in the expression language (`05` §4). Examples:
+
+  ```json
+  "constraints": [
+    { "kind": "unique", "per": ["author", "ref"], "resolve": "latest" },
+    { "kind": "ref_type", "types": ["@type:post", "@type:comment"] },
+    { "kind": "author_is", "path": "ref.author" }
+  ]
+  ```
+
+  - **`unique`**: at most one event per (author, target). With `resolve: latest` a newer one replaces the older, so changing a vote is just a new vote; `resolve: first` ignores later ones. This is what makes "one like per user per post" hold. A replaced event isn't invalid, it just no longer counts.
+  - **`ref_type`**: what the event may reference, e.g. a comment only on a post or a comment.
+  - **`author_is`**: who may emit it, e.g. an "accepted answer" only by the question's author.
+  - **Scope:** by default a constraint applies to the event's exact type, so a like and a vote on the same post coexist. `"scope": "family"` extends it to all descendants, e.g. "one emoji reaction per post, whichever emoji".
+  - **Inheritance:** constraints are inherited through `extends`, and a subtype may only **tighten** them, never loosen them, because every derived instance must remain a valid base instance.
+- **`extensions`:** a namespaced map for anything else that should travel inside the type event, e.g. `{"genesis": {"message": "…"}}` or `{"org.example.units": {"length": "m"}}`. Interpreters preserve unknown namespaces and ignore them. It is the escape valve that avoids superseding the meta-type for every new idea.
+- **Hints: in the type, but not in the meta-type (decided).** The middle path between "fields in the meta-type" and "separate events only":
+  - **The type author's suggestions travel with the type**, under a well-known `hints` namespace in `extensions`: `display_template`, `sort_keys`, `deletion` (advice to apps on whether deleting instances makes sense; e.g. a prediction tracker keeps "deleted" predictions visible, `04` §5), `visibility`. One fetch gets them, and they are as immutable as the type.
+  - **The meta-type's schema doesn't change:** these are conventional keys, not required fields. Interpreters that don't know a hint ignore it.
+  - **Anyone can publish a type annotation later:** an event of type `type annotation` (or one of its subtypes) that references a type event and supplies or overrides hints. The type author can use it too, to change a hint without a new type version.
+  - **Precedence:** the app's own choice → annotations the app trusts (the author's by default) → hints inside the type → kernel defaults.
+- **No regress at the bottom.** The meta-type's own schema is written with JSON Schema's **native keywords** (`"type": "string"`, `"integer"`, `"boolean"`), which the kernel understands directly. So the very first event needs no `string` type to exist yet. The primitive type events published right after it (`C/2/C/1` …) give those natives addresses that schemas can reference and new scalars can extend (`email` extends `string`).
+- **A genesis message (decided).** Like Satoshi's "Chancellor on brink of second bailout for banks" in Bitcoin's first block (and "Let there be light" in `my_notes.txt`), the meta-type carries a message in its `extensions`, e.g. `{"genesis": {"message": "Let there be types."}}`. No type is needed for it.
+- **[O] A separate on-chain message** in the payload of block 1's first tx (the creator's `create_identity`). Txs aren't typed events, so any bytes work. The text is still to be chosen.
+- **Extending it:** the meta-type is itself a type, so a new meta-type version is an edit of the old one that adds fields. Types created under the old one stay valid. Interpreters **preserve and ignore unknown fields** (forward compatibility). Because changing the meta-type changes how everything is read, it goes through **rule versioning** — the canonical meta-type is the one the active rule set names (`03` §9), never "whatever the creator last published".
 
 ## 3. Types
 
 ### Versioning by supersession
 
-- A new type event references the previous version via `supersedes`. **No version integer inside types** — the version is the position in the chain.
+- **A new version of a type is an edit of the type event:** the generic supersede mechanism (`04` §3), single-author like every edit. **No version integer inside types**: the version is the position in the chain.
+- **Superseding is a claim, not an obsolescence.** It says "this is my newer version"; it forces nobody. Apps keep emitting and accepting the old version if they want, and adoption is social consensus. Still needed: it links versions into one lineage (for "same family?" queries and "newer version available" in type pickers), and the same mechanism gives content edits and app config heads (manifests).
+- **Someone else's improved version** of your type is not a supersede (that would be another author's edit, which is invalid). It is a new type that `extends` yours, or one that declares it was derived from yours in its hints.
 - Events point at a **specific** type address, so old events stay valid and unambiguous under the type they were created with.
 - "Update type in place" is impossible by design (it would retroactively re-interpret old events).
-- **Forks are fine** — two types superseding the same one form a graph; each app picks a branch. Compatibility/migration between versions lives in projections or in optional metadata on the type.
+- **Forks are fine**: two edits of the same version by its author, or derived types by others, form a graph; each app picks a branch. Compatibility/migration between versions lives in projections or in optional metadata on the type.
 
 ### Inheritance (polymorphism)
 
-- **`extends` = is-a; `supersedes` = replaces.** Kept separate.
+- **`extends` = is-a; an edit (supersede) = a newer version.** Kept separate.
 - A derived type's schema = base fields + additions, so every derived instance is a valid base instance.
-- **Rendering fallback** walks up the chain: the app's own view for the type → the type's default **type view** (§4, "Displaying one event") → nearest base type the app knows → the type's (inherited) **display template** (e.g. `{title} by {author}`, a default stringification) → the **auto-renderer** generated from the schema → raw JSON as the last resort.
-- Queries "events of type T" include descendants → a **type-lineage closure table** in the projection; "same family?" resolves through both `extends` and `supersedes`.
+- **Rendering fallback** walks up the chain: the app's own view for the type → the type's default **type view** (§4, "Displaying one event") → nearest base type the app knows → the type's (inherited) **display template** hint (e.g. `{title} by {author}`, a default stringification) → the **auto-renderer** generated from the schema → raw JSON as the last resort.
+- Queries "events of type T" include descendants → a **type-lineage closure table** in the projection; "same family?" resolves through both `extends` and version lineage.
 - **[P]** Single inheritance first; interfaces/multiple inheritance later.
 
 ### Convergence of duplicate types
@@ -44,7 +77,7 @@ Genesis type events with native kernel validators: integer, string, bytes, boole
 
 ### Schema language
 
-**[O]** Not chosen. **[P]** A restricted, deterministic JSON-Schema-like language whose type references are event addresses.
+**JSON Schema** (decided), restricted to a deterministic subset, with references to other types written as event addresses.
 
 ## 4. Apps are configuration
 
@@ -89,7 +122,7 @@ Three different things, often confused:
 
 | Concept | Answers | Owned by | Changes how |
 |---|---|---|---|
-| **Type** | what the data *is*: schema, `extends`, display template | type author | supersession creates a **new type**; old events keep the old one |
+| **Type** | what the data *is*: schema, `extends`, constraints | type author | supersession creates a **new type**; old events keep the old one |
 | **Type view** | how to show **one event** of a type: a card, a detail page, a compact row | anyone; the type author's is the default | freely; many per type |
 | **App view** | how to show **a set** of events in an app: query + sort + layout, composed of type views | the app | with the app's manifest |
 
@@ -128,7 +161,7 @@ Illustrative listing (`C` = creator id above the reserved range, `I` = IDM id; d
 | chain | create creator `C` | block 1, initiator 0 |
 | off-chain | meta-type (type_ref = itself) | `C/1/C/1` |
 | off-chain | primitives: integer, string, bytes, boolean, timestamp, address, list, record, decimal, float64 | `C/2/C/1` … |
-| off-chain | base types: view, action, manifest, type view, grant, revoke, supersede/edit, delete, comment, like, upvote, proposal, merge | next batches of `C` |
+| off-chain | base types: view, action, manifest, type view, type annotation, grant, revoke, supersede/edit, delete, post, comment, **reaction** (with the uniqueness constraint), **like** and **vote** (+1 / −1) extending reaction, proposal, merge | next batches of `C` |
 | chain | create IDM `I`, Type Maker, App Maker, Graph Visualizer (owned by `C`) | next blocks |
 | off-chain | manifests/views/actions of the first apps | in each app's own batches |
 | chain / off-chain | **[P]** a demo board/feed app | optional seed |

@@ -7,7 +7,7 @@ The envelope is the **waist of the hourglass**. Storage, chain, merkle trees and
 | Field | Presence | Notes |
 |---|---|---|
 | `version` | always | First field of the serialization; decides the layout of everything after it |
-| `flags` | always | **[P]** A varint (LEB128), one bit per optional or modal feature. Assigned so far: `ref`, `auth`, `signature`, payload encrypted. See §1.1 |
+| `flags` | always | **[P]** A varint (LEB128), one bit per optional or modal feature. Assigned so far: `ref`, `auth`, `signature`, payload encrypted, supersede. See §1.1 |
 | `app, batch, user, seq` | always | The address — fixed by position in the batch |
 | `type_ref` | always | Address of the type event |
 | `ref` | optional | Single reference |
@@ -19,9 +19,9 @@ The envelope is the **waist of the hourglass**. Storage, chain, merkle trees and
 ### 1.1 The flags field **[P]**
 
 - **A varint, not a fixed 32 or 64 bits.** Each byte carries 7 flag bits, and its high bit says "another byte follows". One byte covers the first 7 flags, and the field grows by itself when more are needed. This is the "last bit means more flags follow" idea, built into a standard encoding, with no cap at 64 or 128 and no second field in the payload.
-- **Four bits are assigned:** `ref`, `auth`, `signature`, payload encrypted. The other three bits of the first byte stay free.
+- **Five bits are assigned:** `ref`, `auth`, `signature`, payload encrypted, and **[P] supersede** (`ref` points at the previous version of this event, `04` §3). The other two bits of the first byte stay free.
 - **How the flags are written depends on the canonical encoding** (§4), which covers the whole event, envelope and payload, not only the payload. With a custom layout they are a LEB128 varint. In CBOR they are an ordinary unsigned integer (CBOR integers are already 1–9 bytes), with a byte-string bitmap if more than 64 are ever needed.
-- **In the demo the flags don't exist physically:** they are implied by nullable columns and by `visibility`. They become real bytes in the canonical encoding (§4, decided in P8).
+- **In the demo the flags don't exist physically:** they are implied by nullable columns, `visibility` and `supersedes`. They become real bytes in the canonical encoding (§4, decided in P8).
 
 **Why `auth`, `signature`, `ref` and `type_ref` live in the envelope, not in type schemas:** validity is a core rule that must apply to every event regardless of type. If auth lived in each type's schema, a type author could leave it out and every event of that type would be forgeable; and the projection would have to understand every type just to decide whether an event counts. Same reasoning for references: the core must index "everything referencing X" (deletes, replies, likes) without understanding payloads.
 
