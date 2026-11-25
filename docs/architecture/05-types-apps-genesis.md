@@ -27,7 +27,7 @@ Types, views, actions, manifests, grants, comments, likes — all are events, al
 
 - **`extends` = is-a; `supersedes` = replaces.** Kept separate.
 - A derived type's schema = base fields + additions, so every derived instance is a valid base instance.
-- **Rendering fallback** walks up the chain: exact type → nearest base the app knows → the type's (inherited) **display template** (e.g. `{title} by {author}` — a default stringification) → a raw JSON dump.
+- **Rendering fallback** walks up the chain: the app's own view for the type → the type's default **type view** (§4, "Displaying one event") → nearest base type the app knows → the type's (inherited) **display template** (e.g. `{title} by {author}`, a default stringification) → the **auto-renderer** generated from the schema → raw JSON as the last resort.
 - Queries "events of type T" include descendants → a **type-lineage closure table** in the projection; "same family?" resolves through both `extends` and `supersedes`.
 - **[P]** Single inheritance first; interfaces/multiple inheritance later.
 
@@ -83,6 +83,23 @@ Views compose from views, so this is a layout engine. Model it as a **component 
 
 **First things to build with the makers:** moderation, voting and self-governance, notification inboxes and custom feeds (`10`). They are meant to be types and apps, not core features, and they need an expression language with aggregates (`10` §6).
 
+### Displaying one event: type, type view, app view **[P]**
+
+Three different things, often confused:
+
+| Concept | Answers | Owned by | Changes how |
+|---|---|---|---|
+| **Type** | what the data *is*: schema, `extends`, display template | type author | supersession creates a **new type**; old events keep the old one |
+| **Type view** | how to show **one event** of a type: a card, a detail page, a compact row | anyone; the type author's is the default | freely; many per type |
+| **App view** | how to show **a set** of events in an app: query + sort + layout, composed of type views | the app | with the app's manifest |
+
+- **The view is not inside the type.** Types are immutable, and every change creates a new type version that old events don't follow. Presentation changes much more often than data shape. If the layout lived in the type, every visual tweak would fork the data type and split the ecosystem. So a type view is a **separate event that references the type**.
+- **Several layouts per type are normal:** compact, card, full page, and different ones per app. Apps pick which type views they use, and type views are ranked by usage like types (§3).
+- **The Type Maker creates the type and its default type view together**, so every new type is displayable from day one.
+- **Every event is always displayable**, even with no type view at all: the kernel's **auto-renderer** derives a layout from the schema (field labels, values, references as links). It also generates a **creation form** from the schema, which is how the Type Maker can offer "create one" for any type.
+- **Opening `/e/a/b/c/d`:** app `a` shows it by default (`07` §10). If app `a` has no view for the type, the type's default type view is used; failing that, the auto-renderer. **[P]** Users can set a preference such as "open events of type T with app X".
+- **If app `a` is gone:** its UI isn't. An app is declarative, and its config is events in the log. As long as the events and the config can be fetched (from IDMs, archives, any host, `06` §1), the shell can still render the event the way app `a` did. Only the app's servers disappear, not its interface.
+
 ## 5. Shell, engine, kernel
 
 - **Engine** — the interpreter for view/action config.
@@ -110,12 +127,21 @@ Illustrative listing (`C` = creator id above the reserved range, `I` = IDM id; d
 | chain | create creator `C` | block 1, initiator 0 |
 | off-chain | meta-type (type_ref = itself) | `C/1/C/1` |
 | off-chain | primitives: integer, string, bytes, boolean, timestamp, address, list, record, decimal, float64 | `C/2/C/1` … |
-| off-chain | base types: view, action, manifest, grant, revoke, supersede/edit, delete, comment, like, upvote, proposal, merge | next batches of `C` |
+| off-chain | base types: view, action, manifest, type view, grant, revoke, supersede/edit, delete, comment, like, upvote, proposal, merge | next batches of `C` |
 | chain | create IDM `I`, Type Maker, App Maker, Graph Visualizer (owned by `C`) | next blocks |
 | off-chain | manifests/views/actions of the first apps | in each app's own batches |
 | chain / off-chain | **[P]** a demo board/feed app | optional seed |
 
 Any other app or user can create types and apps afterwards.
+
+### Genesis iterations: "restarting the Matrix" **[P]**
+
+While the demo is young, the system is restarted many times, each time with a **richer genesis**: more base types, better makers, cleaner configs. The best of each iteration is kept as the starting set of the next.
+
+- **Genesis is a data file written with symbolic names**, not addresses: `@type:comment`, `@app:type-maker`. The seed script assigns addresses deterministically when it runs, the way a compiler assigns memory locations. The file is versioned in git (genesis v1, v2, …).
+- **Exporting for the next iteration:** pick events in the running system (types, type views, app configs, maybe some content). An exporter turns them into a **bundle**: the same symbolic format, with addresses inside the kept events rewritten to symbolic names, and references to things not kept dropped or flagged. Merge the bundle into the next genesis file, reset the database, and replay.
+- **The same bundles move types and apps between deployments**, e.g. an interesting app built by the company team recreated on the public system. There they are imported as ordinary new events, not as genesis. Automate later.
+- **What to do now:** write the genesis file in the symbolic format from day one; it costs nothing. Build the exporter only when the first restart worth keeping comes up. Demo data is disposable until then anyway (`08` R3).
 
 ## 7. Creating an app (flow)
 

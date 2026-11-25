@@ -36,6 +36,6 @@ Once implementation starts, the stack is TypeScript end to end (Node + React, `B
 
 - **Keep every piece modular and replaceable** (log store, projector, validity rules, auth, engine, shell, makers, cache), each behind a narrow interface. The user expects parts to be rewritten later, e.g. in Rust for scale.
 - **Business logic belongs in-system** as types and apps, not in the kernel. Moderation, voting, notifications and feeds are meant to be built *with* the Type Maker and App Maker ([10](docs/architecture/10-in-system-social-mechanics.md)), so keep the core small and generic.
-- **The first code centers on the Type Maker and App Maker** (see [08](docs/architecture/08-development-plan.md)).
+- **The first code centers on the Type Maker and App Maker.** The first demo target is only a reddit-style comment system built with them (see [08](docs/architecture/08-development-plan.md) P5). Don't build voting, moderation, notifications or the expression language yet.
 - **It must run locally** on any machine with Node and Postgres before anything else; then on a single server; cloud comes last.
 - **64-bit ids and addresses:** use `BigInt` or strings, never JS `number`. Payload JSON follows the rules in [02 §4](docs/architecture/02-envelope-and-encoding.md).

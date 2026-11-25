@@ -107,3 +107,48 @@ Don't let the demo rely on (1) in a way the real system can't honor: the log its
 - Replaying from genesis gets slower forever. **Checkpoints** (projection snapshots as of block N) are produced by infrastructure / cloud companies (`06` §9), and anyone can start from a checkpoint instead of from genesis.
 - Building state is deterministic, so a checkpoint is identified by *(block N, active rule set, projection definition)* plus a **hash of its contents**. Anyone can verify it by replaying, or trust several independent publishers whose hashes agree. **[P]** Snapshots therefore need a canonical serialization too, so that their hashes are reproducible.
 - **Demo:** a full rebuild is enough. The projection hash from `POST /admin/rebuild` (`07` §6) is the prototype of a checkpoint hash.
+
+## 10. Derived values defined in-system **[P]**
+
+Aggregates, reputation, vote outcomes and strike counts are **state**: pure functions of the log and of the rules that evolve inside it. Their *definitions* should live in-system too, so the community can change how they are computed. This section covers how a definition written as an event becomes a computation in the database.
+
+### Definitions are events; the kernel executes them
+
+- A **derived-value definition** is an event of a genesis type such as `metric`. It names its inputs (types, reference relations, other definitions) and a formula in the expression language (`05` §4). For example: *likes(x) = count of events of type ⊑ like whose ref = x*.
+- Definitions evolve by supersession like everything else, and the version in force is applied **as of its position** in the log. Changing how reputation is computed never rewrites the past.
+- **The kernel executes definitions; it never contains them.** A definition can run in three ways, and all three must give the same answer:
+  1. **Interpreted:** the expression is compiled to SQL on the fly at query time. Simple, fine for small data, and the reference semantics.
+  2. **Incrementally maintained:** the projection worker updates the stored value as each relevant event arrives. Counts and sums over direct references cost O(1) per event.
+  3. **Precompiled:** a hand-written native implementation for a popular, heavy definition, matched by the definition's address (`06` §6). The in-system definition stays the specification, and a test runs both and compares results.
+
+### No new table per definition
+
+- Results go into **generic tables keyed by the definition's address**, e.g. `derived(def, subject, value, as_of_block)`. Adding business logic in-system adds rows, not schema.
+- Specialized tables and indexes may still appear, but only as a **kernel optimization** for hot definitions (a precompile with its own index), never as a requirement of the business logic. Like a database index: invisible to meaning, visible to speed.
+
+### Two classes: live and epoch
+
+| Class | Examples | When computed |
+|---|---|---|
+| **Live** | counts, sums, "has the author deleted it", latest version | on every event, incrementally |
+| **Epoch** | PageRank-style reputation, anything iterative or global | once per epoch, as of block height H (e.g. every N blocks or every hour) |
+
+- Epoch computations run like a scheduled job, but their result is defined by **block height H, not by wall-clock time**: "reputation v3 as of block 120,000". Anyone replaying the log reproduces it exactly: fixed iteration count or an exact stopping rule, fixed-point or decimal arithmetic, fixed order (§7).
+- Results are published as **snapshots**, cacheable and checkpointable (§9).
+
+### Feedback loops: stratify by epoch
+
+Reputation affects sorting, sorting affects what people see, what they see affects what they like, and likes affect reputation. That is not a bug: it is the point of a living system, and PageRank-like systems work this way too. It only gets messy if a *computation* depends on itself. The rule that keeps it well-defined:
+
+- **Within one epoch, the dependency graph of definitions must be acyclic.** The kernel rejects (or ignores) cyclic definitions.
+- **A cycle is allowed only through the previous epoch:** reputation at epoch *k* may read `prev(reputation)` from epoch *k−1*, plus the raw events up to H. The system is then a deterministic state machine, `state[k+1] = f(state[k], events up to H[k+1])`, the same shape as a blockchain.
+- **Feedback through people is free.** UI sorting influences humans, humans emit new events, new events enter the next epoch. Nothing about this needs special handling.
+- Convergence is not guaranteed in general, but **determinism is**, and determinism is what matters for a shared state.
+
+### Prior art worth studying
+
+This is the problem space of **stratified Datalog** (recursive, terminating queries with a stratification rule for negation and aggregates), **incremental view maintenance** and **differential dataflow** (Materialize, Feldera/DBSP), and of course the PageRank power iteration. A Datalog-like core with aggregates is a strong candidate for the derived-value language.
+
+### Scope
+
+**Not in the first demo.** The first demo needs only built-in live counts (upvotes per comment) for reddit-style sorting, hard-coded in the kernel. This section is the direction for later (`08`), and it is why the expression language is the key open design problem (`09` §3).

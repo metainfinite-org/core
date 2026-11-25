@@ -116,6 +116,18 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 108 | Stack | Rust later for performance-critical parts, with sharding and Kafka/Redpanda | L | 07 §9 |
 | 109 | Code | Modular; every piece replaceable behind a narrow interface | D | 08 |
 | 110 | Plan | No deadline; first code centers on the Type Maker and App Maker | D | 08 |
+| 111 | Demo | First demo = reddit-style comments built with the makers, nothing more | D | 08 P5 |
+| 112 | Derived values | Definitions are events; the kernel executes them (interpreted, incremental, precompiled) | P | 04 §10 |
+| 113 | Derived values | Generic tables keyed by definition; no new table per business rule | P | 04 §10 |
+| 114 | Derived values | Live vs epoch computations; epochs defined by block height | P | 04 §10 |
+| 115 | Derived values | Cycles only through the previous epoch (stratification) | P | 04 §10 |
+| 116 | Display | Type, type view and app view are separate; type views are separate events, many per type | P | 05 §4 |
+| 117 | Display | Auto-renderer and auto-form from the schema; Type Maker creates a default type view | P | 05 §4 |
+| 118 | Display | `/e/a/b/c/d` opens in app `a` by default | D | 07 §10 |
+| 119 | Genesis | Symbolic genesis file; iterations ("restart the Matrix"); bundles | P | 05 §6 |
+| 120 | Deploy | Deployments never merge data; types/apps move as bundles | D | 07 §11 |
+| 121 | Moderation | Operator appoints the first tier; elections or reputation later | D | 10 §2 |
+| 122 | Notifications | Notifications are derived; read state is personal state kept by the IDM, not events | P | 10 §4 |
 
 ## 2. Withdrawn or superseded (don't re-propose without a new reason)
 
@@ -173,10 +185,11 @@ Phase-0 blockers first.
 18. **Grant scope vs app changes** — does a manifest change need new consent (`03` §8)?
 19. **Chain** — dedicated L1 or rollup (`06` §10).
 20. **Metadata leakage of encrypted events** (`02` §8).
-. **First moderators** — who appoints the first tier (`10` §2).
-23. **Inbox read state** — an event per user, or per-user state outside the log (`10` §4)?
-24. **Merging deployments** — will company or local data ever merge into the public or real system? If yes, id ranges must not overlap (`07` §11).
-25. **Scope of the first expression language** — which aggregates and derived values are enough for voting, strikes and reputation (`10` §6)?
+21. **Indexer completeness** — how an app trusts that an indexer missed nothing (`06` §9).
+22. ~~**First moderators**~~ — resolved (decision 121).
+23. **Inbox read state** — proposed: personal state kept by the IDM (decision 122). Confirm.
+24. ~~**Merging deployments**~~ — resolved: never; types and apps move as bundles (decision 120).
+25. **The expression / derived-value language** — Datalog-like core with aggregates? Scope for the first version after P5 (`04` §10).
 
 ## 4. Parking lot (explicitly not now)
 

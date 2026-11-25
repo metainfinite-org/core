@@ -57,6 +57,13 @@ A CDN is a cache in front of the API. It never asks Postgres anything: on a miss
 
 The client asks the tiny "latest" question, then fetches the exact version, which is usually a CDN hit. Web apps already work this way: content-hashed assets (`app.3f9a1c.js`) are cached forever behind a short-lived `index.html`.
 
+**How CDN entries change.** Two mechanisms, used together:
+
+1. **Expiry (timers):** each response says how long it may be cached (`Cache-Control: s-maxage=…`). After that the CDN does **not** poll on its own. Only when the next request for that URL arrives does it ask the server again, usually with a cheap conditional request (`If-None-Match` with the ETag). The server answers `304 Not Modified` (keep the copy) or sends the new content. `stale-while-revalidate` lets the CDN keep serving the old copy while it refreshes in the background.
+2. **Purge (pushed by the server):** the server tells the CDN through its API to drop a URL now.
+
+Here: exact versions use a very long expiry plus purge for takedowns; latest lookups and feeds use short expiry plus revalidation.
+
 **Takedowns.** Every major CDN has a purge API (Cloudflare purge by URL or cache tag, CloudFront invalidations, Fastly surrogate keys). When a delete or a moderation hide becomes valid in the projection, a worker purges that event's URL. From then on the API answers **410 Gone** (deleted by its author) or **451 Unavailable** (hidden by moderation, with the address of the deciding event). Feeds drop it on their next refresh, since they are barely cached. The event stays in the log; the host may also drop the payload (`02` §7).
 
 **In-memory cache (Redis or memcached).** Not needed locally or for the company: Postgres's own buffer cache is enough. For the public demo, put it between the API servers and Postgres for the hottest small reads: latest-head lookups, counts (likes per event), assembled feed pages, sessions. Redis is the better fit because its pub/sub can also push live notifications to connected clients (`10` §4); memcached is a pure cache. Keep it behind one `cache` interface so it stays optional and swappable. Invalidation is easy, because the projection worker knows exactly which heads and counts each event changed.
@@ -183,7 +190,7 @@ The shell is a "browser inside the browser", and it **owns the real browser URL*
 | `/e/7/42/5/1?exact` | exactly that version |
 | `/a/9/e/7/42/5/1` | the event opened inside app 9 |
 
-- **Which app opens `/e/…`:** the event's own app (the first integer) if it has a view for the event's type. Otherwise the generic event viewer, which uses the type's rendering fallback (`05` §3).
+- **Which app opens `/e/…`:** the event's own app (the first integer) by default. If it has no view for the type: the type's default type view, then the auto-renderer generated from the schema. That works even if the app's servers are gone, because its config is in the log (`05` §4, "Displaying one event").
 - **Everything that defines the screen goes into the URL.** View props live in the query string, serialized generically by the engine from the view's config, so any screen can be shared.
 - Page URLs (`/e/…`) are shell routes. API URLs (`/api/e/…`) are what the CDN caches (§3).
 - **[Later]** Names instead of numbers, once naming exists (`06` §1).
@@ -193,4 +200,4 @@ The shell is a "browser inside the browser", and it **owns the real browser URL*
 - **Priority order:** run locally on any machine with Node and Postgres (install, one command to create the database, seed genesis and start), then the same on one server, then a cloud (AWS or similar) for the public demo.
 - **[P] A `deployment.yml` file** holds the deployment's parameters: name, `first_identity` (1 for local and company deployments, e.g. 1,000,001 for the public demo), block interval, sign-in provider. Secrets (database URL, OAuth client secret) come from environment variables, not from the file.
 - **Genesis parameters are read once**, when genesis runs on an empty database, and are recorded in genesis itself, e.g. in the creator's `create_identity` tx. The database is then self-describing, and editing the file later doesn't change an existing deployment.
-- **[O]** If data from one deployment ever has to merge into another (company into public, or into the real system), their id ranges must not overlap. Otherwise the import has to renumber identities, which breaks addresses that are quoted inside text.
+- **Deployments never merge their data** (decided), so their id ranges may overlap: local and company start at 1. Interesting **types and apps move between deployments as bundles** with symbolic references, imported as new events (`05` §6).

@@ -49,13 +49,16 @@ Decide what can't change once data exists:
 
 **Exit:** a user creates a type and an app from the UI and uses it.
 
-### Phase 5 — Declarative apps (L)
-- Board/feed app purely as config (comments, likes, upvotes, sorting)
-- **First version of the expression language with aggregates**, and user-defined derived values (`05` §4, `10` §6)
-- Attempt the in-system mechanics with the makers: voting (including on voting rules), reputation, notification inboxes, custom feeds, moderation (`10`)
+### Phase 5 — First demo target: reddit-style comments (L)
+- **A reddit-style comment system expressed through the Type Maker and App Maker, and nothing more:** posts, nested comments, upvotes, hot/new/top sorting
+- Sorting uses built-in live counts hard-coded in the kernel; no expression language yet
+- Genesis written as a symbolic data file, ready for later iterations (`05` §6)
 - **Stretch:** Type Maker and App Maker re-expressed as config
 
-**Exit:** useful new apps built with zero code; gaps in the block set and the expression language documented.
+**Exit:** the comment system is built from the UI with zero code; gaps in the block set documented.
+
+### After P5 — Growing expressiveness (open-ended, unsized)
+Iterate: restart with a richer genesis each time (`05` §6), design the expression language and derived values (`04` §10), then build the in-system mechanics with the makers: voting (including on voting rules), reputation, notification inboxes, custom feeds, moderation (`10`). The company deployment can start as soon as P5 is done and grow with these iterations.
 
 ### Phase 6 — Company deployment (M)
 - Install on one server (same as local), OIDC SSO, backups, ops docs
@@ -122,7 +125,7 @@ P0 ─► P1 ─► P2 ─► P3 ─► P4 ─► P5 ─► P6
 | R18 | **Company later needs private spaces**, but the demo assumes everything is readable | L | M | Not needed at the start; `can_read` seam from the start, so ACLs as events can be added without touching the core |
 | R19 | **64-bit ids lose precision** in JS `number` | M | H | `BigInt` end to end; driver config; a test with ids above 2^53 |
 | R20 | **Spam at public launch** | M | M | Social and infra flagging (`06` §8); account price or throttle before the final system launches |
-| R21 | **Expression language needed early.** Voting, strikes, reputation and threshold notifications all need aggregates, so the fixed menu won't carry the company deployment | H | M | Plan it into P5; start with a small non-Turing-complete language (`05` §4); grow it from the gaps found (`10` §7) |
+| R21 | **Expression language is hard.** Voting, strikes, reputation and threshold notifications all need aggregates and feedback-safe derived values | H | M | Kept out of the first demo; design after P5 with stratified epochs (`04` §10); start with a small non-Turing-complete language (`05` §4); grow it from the gaps found (`10` §7) |
 | R22 | **Moderation abuse or capture** (unfair moderators, false-report brigading) | M | M | Disputes, escalation tiers, penalties and reputation (`10` §2); operator override |
 
 ## 4. Test strategy

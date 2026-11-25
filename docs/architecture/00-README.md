@@ -79,8 +79,8 @@ A new kind of social / knowledge platform whose foundation is deliberately tiny:
 | `01-core-model.md` | Identity space, addresses, reserved values, batches, blocks & transactions, events, ordering, core SQL |
 | `02-envelope-and-encoding.md` | Envelope fields, version & flags, auth vs signature, canonical serialization, primitives, floats, compactness, payload commitment & erasure, encrypted payloads |
 | `03-identity-auth-ownership.md` | Creator, IDMs, ownership, migration, sovereignty, keys, grants, validity rule, rule versioning, app ownership |
-| `04-state-projection-references.md` | Replay algorithm, edits, forks, deletion, pull-request merging, soft/hard references, reproducible computation, schema validation, replay checkpoints |
-| `05-types-apps-genesis.md` | Meta-type, supersession, inheritance, primitives, apps as config, composition, shell/engine/kernel, makers, genesis listing, type convergence, view expression language |
+| `04-state-projection-references.md` | Replay algorithm, edits, forks, deletion, pull-request merging, soft/hard references, reproducible computation, schema validation, replay checkpoints, derived values (live/epoch, feedback loops) |
+| `05-types-apps-genesis.md` | Meta-type, supersession, inheritance, primitives, apps as config, composition, shell/engine/kernel, makers, genesis listing, type convergence, view expression language, type views and event display, genesis iterations |
 | `06-distributed-system-and-future.md` | IDM duties, data availability, latest-version queries, stable addresses, DNS-like layer, privacy, spam, indexing & infra companies, chain choice, pipelines, related systems |
 | `07-demo-spec.md` | Demo scope, the two deployments, Postgres, projection schema, API, user flows, read access, implementation stack |
 | `08-development-plan.md` | Phases, dependencies & critical path, risk register, test strategy, definition of done, first week |
