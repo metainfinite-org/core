@@ -9,7 +9,8 @@
 
 ### Identity space and positional scarcity
 
-- Low numbers are valuable and will be **sold** (positional scarcity). The first 1k / 10k / 1M ids are reserved. **[O]** exact size.
+- Low numbers are valuable and will be **sold** (positional scarcity). The first 1k / 10k / 1M ids are reserved. **[O]** exact size for the real system.
+- **Each deployment chooses its first id.** Local and company deployments start at 1; the public demo starts higher, e.g. 1,000,001. It is a genesis parameter from the deployment config, recorded in genesis (`07` §11).
 - The **genesis creator gets a number above the reserved range**, not 0 and not 1.
 - **[P]** Fix the reserved range once and forever before genesis — it can never shrink after data exists.
 - **[P]** Two creation modes: *explicit id* (only for reserved ids, granted by the creator/governance — this also leaves an auditable on-chain record of every grant/sale) and *next free id* above the reserved range for ordinary signups. Low ids therefore cannot come from a sequential counter.
@@ -46,7 +47,8 @@ All four fields start at 1; 0 is reserved in every position. Assigned meanings s
 
 ## 3. Batches
 
-- An app accumulates events in **one open batch** at a time. Every X seconds/minutes the batch is **sealed**: merkle root computed and published on-chain together with a header hash; the counter advances; the next batch opens. Apps choose their own interval (every second, every minute…).
+- An app accumulates events in **one open batch** at a time. Every X seconds/minutes the batch is **sealed**: merkle root computed and published on-chain (mandatory), optionally together with an IPFS hash of a batch header; the counter advances; the next batch opens. Apps choose their own interval: only the biggest apps (facebook/twitter scale) publish every block or every few blocks, smaller ones once a minute or less often.
+- **[P] Batch structure:** a batch is a **tree of IPFS blobs** in a hierarchy, with headers, so parts can be fetched selectively. Ordinary payloads sit inside the batch. Very large files (video, big images) are referenced from the payload by a hash commitment plus a way to fetch them, e.g. an IPFS hash (`02` §7).
 - Events that arrive while sealing go into the next batch — still predictable.
 - The **merkle tree is built incrementally** by hashing events as they are added. **[P]** Leaves ordered by `(user, seq)` give deterministic trees, cheap inclusion proofs, and **proofs of absence** ("U has nothing in this batch").
 - **Pending visibility:** apps may expose their open batch read-only (e.g. twitter asks facebook what is in facebook's next batch), and UIs show those events with an "unpublished" marker. **Other apps may not reference them until published** (decided convention — `04` §5).

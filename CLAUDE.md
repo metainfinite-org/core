@@ -9,11 +9,11 @@ This repo has **no code yet**. There are no build, lint or test commands. It hol
 - *Internet 2.0: The Global Brain* (code::dive 2023)
 - *Headjack: Decentralized identity & content addressing at web-scale* (code::dive 2022)
 
-Once implementation starts, the planned stack is PostgreSQL for both deployments, a single-node docker compose for the demo, and an outbox table with Postgres notifications instead of Kafka (see [07-demo-spec.md](docs/architecture/07-demo-spec.md)). Update this file with real commands when code lands.
+Once implementation starts, the stack is TypeScript end to end (Node + React, `BigInt` for 64-bit ids; see [07-demo-spec.md §9](docs/architecture/07-demo-spec.md)) with PostgreSQL for both deployments, a single-node docker compose for the demo, and an outbox table with Postgres notifications instead of Kafka (see [07-demo-spec.md](docs/architecture/07-demo-spec.md)). Update this file with real commands when code lands.
 
 ## Layout
 
-- [docs/architecture/](docs/architecture/): the architecture set, files `00-README.md` to `09-decisions-and-open-questions.md`. It was written from a long design conversation.
+- [docs/architecture/](docs/architecture/): the architecture set, files `00-README.md` to `10-in-system-social-mechanics.md`. It was written from a long design conversation.
 - [my_notes.txt](my_notes.txt): the user's raw notes and requirements. Some are in Bulgarian (transliterated). Ideas here that are not invalidated elsewhere are meant to end up in the architecture docs.
 
 ## How to work with the docs
@@ -31,3 +31,11 @@ Once implementation starts, the planned stack is PostgreSQL for both deployments
 - **Apps are config inside the system** (manifest, view and action events) that a generic engine interprets. Views form a component tree with props, children by address, bound queries, and flex/grid layout over a whitelist of blocks.
 - **Demo vs. final system:** the demo is 100% centralized, but it keeps the real address scheme, envelope and projection model, so its data can be imported later with merkle trees built retroactively. In the final system only the chain is centralized: IDMs store and serve user events, and users can bind keys for self-sovereignty. Demo shortcuts (single IDM, no keys, auto-approved grants) sit behind single functions such as `authorize(session, app, user)`.
 - The thin waist (envelope, address scheme, type meta-model) must stay stable. Freeze it carefully: it cannot change once genesis data exists.
+
+## When writing code
+
+- **Keep every piece modular and replaceable** (log store, projector, validity rules, auth, engine, shell, makers, cache), each behind a narrow interface. The user expects parts to be rewritten later, e.g. in Rust for scale.
+- **Business logic belongs in-system** as types and apps, not in the kernel. Moderation, voting, notifications and feeds are meant to be built *with* the Type Maker and App Maker ([10](docs/architecture/10-in-system-social-mechanics.md)), so keep the core small and generic.
+- **The first code centers on the Type Maker and App Maker** (see [08](docs/architecture/08-development-plan.md)).
+- **It must run locally** on any machine with Node and Postgres before anything else; then on a single server; cloud comes last.
+- **64-bit ids and addresses:** use `BigInt` or strings, never JS `number`. Payload JSON follows the rules in [02 §4](docs/architecture/02-envelope-and-encoding.md).

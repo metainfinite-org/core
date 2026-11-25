@@ -50,9 +50,15 @@ The envelope is the **waist of the hourglass**. Storage, chain, merkle trees and
 Signatures and hashes are over bytes, so the encoding must be deterministic.
 
 - **Why not protobuf:** the same logical message can serialize to different bytes — field order isn't mandated, varints can be non-minimal, defaults may or may not be written, map order is undefined, unknown fields are kept by some libraries and dropped by others. Two parties re-serializing the same message can get different hashes.
-- **Candidates:** CBOR in deterministic mode (RFC 8949) or a custom fixed layout (version, flags, varints, length-prefixed payload). **[O]** which one. For JSON payloads, RFC 8785 (JCS) canonicalization.
+- **Candidates:** CBOR in deterministic mode (RFC 8949) or a custom fixed layout (version, flags, varints, length-prefixed payload). **[O]** Which one is decided in P8, when hashing and signing start (`08`), not in P0. **[P]** Lean towards deterministic CBOR: a standard with existing libraries. For JSON payloads, RFC 8785 (JCS) canonicalization.
 - Hash and verify the **exact bytes received**; never re-serialize to check.
-- The demo stores columns + JSONB. That is fine as long as the canonical form is defined **before anything is signed or hashed**; the import into the real system serializes canonically.
+- **The demos use plain JSON** (JSONB in Postgres, JSON over the wire) and no CBOR. Nothing in them is hashed or signed, so there is nothing to canonicalize yet. The import into the real system serializes canonically.
+- **[P] JSON rules that keep that later conversion lossless:**
+  - 64-bit integers and addresses as strings (`"7/42/5/1"`), never as JSON numbers, which lose precision above 2^53 in JS
+  - decimals as strings
+  - strings in NFC
+  - no floats in fields that rules depend on
+  - JSONB already normalizes key order and drops duplicate keys
 
 ## 5. Primitive types and strict encoding
 
@@ -86,3 +92,15 @@ Encoding rules:
 ```
 
 (Identity numbers are placeholders: `1000001` = creator, `1000002` = IDM, assuming a 1M reserved range.)
+
+## 7. Payload commitment, erasure and large media
+
+- **Leaves and signatures commit to the envelope plus `hash(payload)`**, not to the payload bytes directly. A host can then drop a payload (illegal content, personal data, a legal erasure request) and keep only its hash. The merkle inclusion proof and any signature still verify, and the event reads as "content erased" instead of becoming unprovable.
+- **Large media works the same way:** the payload carries a hash commitment to the blob plus a way to fetch it (e.g. an IPFS hash). The blob itself sits outside the event (`01` §3).
+- **When to decide the exact leaf format:** together with the canonical serialization, before the first event is hashed or signed. That is when real merkelization starts (`08` P8), not P0. The demo hashes and signs nothing, and its import builds trees retroactively, so the import can use this format. The only constraint on the demo today: keep the payload a separable value (it already is its own column), never mixed into envelope fields.
+
+## 8. Encrypted payloads **[P]**
+
+- Private events may carry an **encrypted payload** (`06` §7). It is marked by a flag bit, added with an envelope version bump when needed. Nothing has to be reserved now, since `version` and `flags` already exist.
+- `type_ref`, `ref` and `auth` stay plaintext, because validity and the core indexes depend on them. **[O]** This leaks metadata (which type, who references what). Apps that can't accept that keep whole batches off the public internet instead (`06` §7).
+- Only key holders can schema-check or interpret an encrypted payload. To everyone else it is opaque bytes, which the core already tolerates (§1: the payload is opaque to the core).

@@ -31,6 +31,13 @@ Types, views, actions, manifests, grants, comments, likes — all are events, al
 - Queries "events of type T" include descendants → a **type-lineage closure table** in the projection; "same family?" resolves through both `extends` and `supersedes`.
 - **[P]** Single inheritance first; interfaces/multiple inheritance later.
 
+### Convergence of duplicate types
+
+- Anyone can create types, so there will be many duplicates and minor variations (dozens of `comment` types). That is accepted, not prevented.
+- **Apps choose which types they work with.** Typically an app uses one "canonical" comment type and doesn't show the others by default. Only once another type becomes widely used do apps start to accommodate it.
+- That is the **forcing function**: a new type isn't picked up by anyone else automatically, so there's little reason to invent one when an existing type will do. The ecosystem converges by **usage**.
+- **Mappings between types** are also possible: an event that says how to read type B as type A, so apps can accept variants without code. **[P]** Type pickers rank types by usage (instances, apps using them).
+
 ### Primitives
 
 Genesis type events with native kernel validators: integer, string, bytes, boolean, timestamp, address, list, record, decimal, float64 (`02` §5). Schemas reference them by address; new scalars extend them.
@@ -40,6 +47,8 @@ Genesis type events with native kernel validators: integer, string, bytes, boole
 **[O]** Not chosen. **[P]** A restricted, deterministic JSON-Schema-like language whose type references are event addresses.
 
 ## 4. Apps are configuration
+
+> **Least settled part of the design.** Types, apps, views and user scripting are expected to be reworked once the engine is being built and the model can be seen working. Treat §4–§6 as a starting point, not a contract. It is also the product's differentiator (`00` §1).
 
 An app = **an identity + config events describing it**. The log doesn't restrict what an app can emit; config only decides what the UI offers and how data is read. The building blocks:
 
@@ -52,6 +61,17 @@ An app = **an identity + config events describing it**. The log doesn't restrict
 
 Target capabilities for the first apps: commenting, liking, upvoting, reddit-style sorting, browsing a graph of nodes.
 
+### The query and sort expression language **[O]**
+
+Needs real design work. Requirements:
+
+- **deterministic**: same log prefix, same result (`04` §7), with no floats in shared scores
+- **always terminates**, with bounded cost
+- **safe to run on a server**, i.e. sandboxed
+- **evaluates identically on client and server**
+
+Demo: a fixed menu of filters and sorts (time, reference counts, hot/top). User-defined formulas need the sandboxed language. **[P]** Study non-Turing-complete expression languages such as CEL (Common Expression Language), spreadsheet-style formulas and JSONLogic. This ties into the later scripting layer (`06` §6).
+
 - Config **evolves like types**: a new manifest supersedes the old; the current config = the head of the chain of *valid* manifests (valid = authored under the app's owner's authority, `03` §8).
 - **Forking an app** = superseding someone's manifest from your own new app identity. A non-owner's superseding manifest is accepted by the log but doesn't count for the original app — it's a fork anyone can adopt.
 
@@ -60,6 +80,8 @@ Target capabilities for the first apps: commenting, liking, upvoting, reddit-sty
 Views compose from views, so this is a layout engine. Model it as a **component tree**: each view has *props* (e.g. the selected node), *children* (other views by address), data from *bound queries*, layout via flexbox/grid semantics (stack, row, grid). Study/reuse existing declarative UI models — Adaptive Cards, Retool/Appsmith JSON configs, Notion's block model — and render with React from a **whitelist of blocks**: list, tree, graph, form, button, text, stack, row.
 
 **Expressiveness limit:** what the blocks can't express can't be built. **[Later]** an escape hatch (config pointing at hosted code) — deliberately postponed to see how far pure config goes.
+
+**First things to build with the makers:** moderation, voting and self-governance, notification inboxes and custom feeds (`10`). They are meant to be types and apps, not core features, and they need an expression language with aggregates (`10` §6).
 
 ## 5. Shell, engine, kernel
 

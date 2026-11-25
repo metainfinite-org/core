@@ -35,7 +35,7 @@ Demo: one event per batch per tx, so the inner loop has one iteration.
 - **Version chains are single-author:** a supersede is valid only if authored by the **same identity** as the original (through any app, with that identity's valid auth or signature). Consequence: every valid update is authored by one identity, so that identity's IDM is the only party that has to track versions (`06`). No cross-IDM watching, no edit-grant chains.
 - **Head** = latest valid version in replay order. If two valid edits supersede the same version, the later one is the head; the other remains a branch in the history.
 - **Anyone can fork:** a fork is a new event by someone else referencing the original. It never affects the original's head.
-- **Reads return the latest version by default**; history only on explicit request. Demo: a derived `head` per lineage and `GET /latest`.
+- **Reads return the latest version by default**; history only on explicit request. Demo: a derived `head` per lineage. The API splits it into an immutable exact-version read and a small latest lookup, so versions stay cacheable (`07` §3).
 
 ## 4. Shared editing via pull requests
 
@@ -46,7 +46,7 @@ Demo: one event per batch per tx, so the inner loop has one iteration.
   - **patches, not full replacements**, so concurrent proposals against the same base can merge (field- or operation-level; CRDTs a possible later step)
   - merging is asynchronous; pending proposals are visible until merged
   - the merge event records the outcome, so replay never re-evaluates the policy
-- This gives the company knowledge-base deployment a wiki workflow.
+- This gives a wiki-style workflow for shared content.
 
 ## 5. Deletion
 
@@ -55,7 +55,7 @@ Demo: one event per batch per tx, so the inner loop has one iteration.
 - **[P]** A type may carry an optional **deletion hint** — guidance for apps, never enforcement.
 - Technical minimum: the meta-type, primitives and grants can't be meaningfully deleted, because interpretation depends on them. "Deleting" a type with live instances only hides it from type pickers; its instances remain interpretable.
 - A delete event is always accepted into the log.
-- **[O]** Legal erasure: hosts can drop payloads, proofs remain. Needs its own answer before public launch.
+- **Erasure mechanism:** hosts drop the payload and keep its hash. Proofs and signatures still verify because leaves commit to `hash(payload)` (`02` §7). **[O]** The legal and moderation *position* (who must erase what, on whose request) still needs an answer before public launch.
 
 ## 6. References
 
@@ -101,3 +101,9 @@ Type events carry a schema for their payloads — a declaration for interpreters
 3. **Clients/UIs** — hide or flag what they can't interpret.
 
 Don't let the demo rely on (1) in a way the real system can't honor: the log itself rejects nothing.
+
+## 9. Replay cost and checkpoints
+
+- Replaying from genesis gets slower forever. **Checkpoints** (projection snapshots as of block N) are produced by infrastructure / cloud companies (`06` §9), and anyone can start from a checkpoint instead of from genesis.
+- Building state is deterministic, so a checkpoint is identified by *(block N, active rule set, projection definition)* plus a **hash of its contents**. Anyone can verify it by replaying, or trust several independent publishers whose hashes agree. **[P]** Snapshots therefore need a canonical serialization too, so that their hashes are reproducible.
+- **Demo:** a full rebuild is enough. The projection hash from `POST /admin/rebuild` (`07` §6) is the prototype of a checkpoint hash.

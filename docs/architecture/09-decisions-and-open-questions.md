@@ -28,7 +28,7 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 20 | Envelope | Signature covers the address; auth path doesn't need it | D | 02 §3 |
 | 21 | Envelope | Stored auth is a reference; bundles inline grants for export | D | 02 §3 |
 | 22 | Encoding | Deterministic canonical form; not protobuf | D | 02 §4 |
-| 23 | Encoding | CBOR-deterministic vs custom layout | O | 02 §4 |
+| 23 | Encoding | CBOR-deterministic vs custom layout: decided in P8, lean CBOR | O (P8) | 02 §4 |
 | 24 | Types | Primitives are genesis type events; NFC strings; minimal varints | D | 02 §5 |
 | 25 | Types | float64 storable with canonical encoding; exact ops only in consensus paths | D | 02 §5 |
 | 26 | Types | Versioning by supersession; no version field; forks allowed | D | 05 §3 |
@@ -48,7 +48,7 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 40 | Rules | Versioned by block number (hard-fork-style consensus) | D | 03 §6 |
 | 41 | Transport | Demo: no API keys; one `authorize(session, app, user)` seam | D | 03 §7 |
 | 42 | Apps | Apps are identities owned on-chain; human control = IDM custody policy | D | 03 §2 |
-| 43 | Apps | Demo config authored by the app identity via App Maker | P | 03 §8 |
+| 43 | Apps | Demo config authored by the app identity via App Maker (revisit once code exists) | D | 03 §8 |
 | 44 | Governance | Creator sunsets; canonical meta-type named by the rule set; envelope by ecosystem | D | 03 §9 |
 | 45 | State | State = replay; authorization in the projection | D | 04 §1 |
 | 46 | Edits | Single-author version chains; anyone can fork | D | 04 §3 |
@@ -75,6 +75,47 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 67 | Future | Stable addresses `0/0/user/seq`, IDM-issued | L | 06 §5 |
 | 68 | Future | On-chain endpoints (DNS-like), name ownership | L | 06 §1 |
 | 69 | Future | Pipelines, scripting nodes, node editor, precompiles | L | 06 §6 |
+| 70 | Project | One developer, small budget | D | 00 §1 |
+| 71 | Project | Company KB = real use and possible revenue; public demo = later launch | D | 00 §1 |
+| 72 | Product | Differentiator vs Notion/Confluence: custom types & apps, any functionality in-system | D | 00 §1 |
+| 73 | Stack | TypeScript end to end (Node + React); `BigInt` for 64-bit ids; plain SQL | D | 07 §9 |
+| 74 | Privacy | Via grants, keys, encryption; batches may be intranet-only | D | 06 §7 |
+| 75 | Chain | Merkle root mandatory on-chain; IPFS header hash optional | D | 06 §2 |
+| 76 | Privacy | Encryption flag; `type_ref`/`ref`/`auth` stay plaintext | P | 02 §8 |
+| 77 | Privacy (demo) | No crypto; `can_read` seam; CDN caches public events only | P | 07 §3 |
+| 78 | Erasure | Leaves and signatures commit to envelope + `hash(payload)` | D | 02 §7 |
+| 79 | Erasure | Leaf format decided with real merkelization (P8), not P0 | D | 02 §7 |
+| 80 | Availability | No economic incentive; bad services lose customers | D | 06 §3 |
+| 81 | Spam | Left to social incentives; infra services flag identities | D | 06 §8 |
+| 82 | Accounts | Price or throttle for on-chain account creation at launch | L | 06 §8 |
+| 83 | Types | Duplicates accepted; apps pick canonical types; convergence by usage | D | 05 §3 |
+| 84 | Types | Mappings between types; usage-ranked type pickers | P | 05 §3 |
+| 85 | Infra | Apps self-host (on-chain endpoint) or use infra companies that charge apps per usage | D | 06 §9 |
+| 86 | Chain | Users rarely touch the chain; IDMs batch users' ops; publish rate by app size | D | 06 §10 |
+| 87 | Chain | Identity txs with many items per tx | P | 06 §10 |
+| 88 | Media | Batch = tree of IPFS blobs with headers; large files by hash + locator | P | 01 §3 |
+| 89 | Replay | Checkpoints by infra companies; deterministic, hash-verifiable | D | 04 §9 |
+| 90 | Keys | Key recovery (social, guardians, time-locked IDM path) | L | 03 §3 |
+| 91 | Apps | Type/app/view/scripting model expected to be reworked once built | D | 05 §4 |
+| 92 | Company KB | No private events or restricted spaces at the start; everyone in the deployment reads everything | D | 07 §3 |
+| 93 | Company use | The team builds its own types and apps (self-organization, reputation, priorities, voting, voting on voting rules); no pages/rich text, full-text search or importers for now | D | 07 §3, 10 |
+| 94 | Caching | Exact-version URL cached forever on the CDN, briefly in browsers; "latest" is a separate small lookup | P | 07 §3 |
+| 95 | Caching | Takedowns via CDN purge APIs; 410 for deleted, 451 for hidden | P | 07 §3 |
+| 96 | Caching | Redis/memcached only for the public demo, behind a `cache` interface | P | 07 §3 |
+| 97 | Moderation | In-system: code of conduct, flags, decisions, strikes, bans, tiers, disputes, overturns, penalties, reputation | D | 10 §2 |
+| 98 | Moderation | A host follows a chosen moderation authority; operator override for illegal content | P | 10 §2 |
+| 99 | Governance | Voting, rules as events, rules about rules, all in-system | D | 10 §3 |
+| 100 | Notifications | Default inbox for references to your events; system-wide custom criteria; multiple inboxes | D | 10 §4 |
+| 101 | Feeds | Fully customizable feeds as user-owned view configs | D | 10 §5 |
+| 102 | Kernel | Expression language with aggregates + user-defined derived values, needed in P5 | P | 10 §6 |
+| 103 | URLs | The shell owns the browser URL; apps, views and events are linkable | D | 07 §10 |
+| 104 | URLs | Scheme `/a/<app>`, `/e/<addr>`, view props in the query string | P | 07 §10 |
+| 105 | Deploy | Local first (Node + Postgres), then one server, then cloud | D | 07 §11 |
+| 106 | Deploy | First id configurable per deployment; recorded in genesis; `deployment.yml` | D / file format P | 07 §11 |
+| 107 | Encoding | Plain JSON in the demos, with lossless-conversion rules | P | 02 §4 |
+| 108 | Stack | Rust later for performance-critical parts, with sharding and Kafka/Redpanda | L | 07 §9 |
+| 109 | Code | Modular; every piece replaceable behind a narrow interface | D | 08 |
+| 110 | Plan | No deadline; first code centers on the Type Maker and App Maker | D | 08 |
 
 ## 2. Withdrawn or superseded (don't re-propose without a new reason)
 
@@ -100,26 +141,43 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | Shared identity with many owners + `actor` field | Proposals auto-merged by the owner |
 | Inline grant as the canonical stored form | Reference; inline only in bundles |
 | Stable addresses as a requirement | Optional, deferred |
+| Pinning, replication mandates or economic incentives for data availability | Market: bad services lose customers |
+| Protocol-level spam prevention for off-chain data | Social consensus, infra flagging |
+| Merkle leaf / payload-hash format as a Phase-0 decision | Decided with real merkelization (P8) |
+| Leaf committing to the payload bytes directly | Leaf commits to `hash(payload)` |
+| Wiki workflow as the company deployment's main feature | The team builds its own types and apps |
+| An event URL that returns the latest version by default | Exact-version URL plus a separate latest lookup |
+| Canonical binary encoding as a Phase-0 decision | JSON in the demos; decided in P8 |
 
 ## 3. Open questions
 
 Phase-0 blockers first.
 
 1. **Reserved id range** size; genesis creator and IDM ids.
-2. **Canonical encoding**: CBOR-deterministic or custom layout.
+2. ~~**Canonical encoding**~~ — deferred to P8; the demos use JSON (decision 107).
 3. **Schema language** for type payloads.
 4. **Meta-type field list** for genesis.
-5. **Config authorship** in the demo (app identity vs creating user).
+5. ~~**Config authorship**~~ — resolved: the app identity, revisit once code exists (decision 43).
 6. **Same-batch hard dependencies** — adopt?
 7. **Edge activation rule** as the safety net — confirm.
 8. **Grants after migration** — valid until revoked by the new owner?
 9. **Open-batch guarantee** — must an open batch always seal; what if an app discards pending events?
 10. **Merge policy and patch format** for proposals.
-11. **Legal erasure and moderation** position before public launch.
+11. **Legal erasure and moderation** position before public launch. The mechanism is decided (`02` §7).
 12. **Escape hatch** for apps needing code — if and when.
 13. **Stable-address assignment** — on request, automatic, or pre-allocated by the IDM before batching.
-14. **Economics** — fees, balances, sales mechanics.
+14. **Economics** — fees, balances, sales mechanics, account price or throttle.
+15. ~~**Implementation stack**~~ — resolved: TypeScript (decision 73).
+16. ~~**Company read access**~~ — resolved: no private events or restricted spaces at the start (decision 92).
+17. **Query and sort expression language** for views — deterministic, terminating, sandboxed (`05` §4).
+18. **Grant scope vs app changes** — does a manifest change need new consent (`03` §8)?
+19. **Chain** — dedicated L1 or rollup (`06` §10).
+20. **Metadata leakage of encrypted events** (`02` §8).
+. **First moderators** — who appoints the first tier (`10` §2).
+23. **Inbox read state** — an event per user, or per-user state outside the log (`10` §4)?
+24. **Merging deployments** — will company or local data ever merge into the public or real system? If yes, id ranges must not overlap (`07` §11).
+25. **Scope of the first expression language** — which aggregates and derived values are enough for voting, strikes and reputation (`10` §6)?
 
 ## 4. Parking lot (explicitly not now)
 
-Name ownership / DNS replacement · account and name sales · scoped and expiring grants, delegation chains · multiple scoped keys per user · bit-level envelope compaction · batch header bloom filters and proofs of absence · IDM state trees and attestations · pipelines, scripting, node editor, precompiles, indexes · engine expressed in-system · Kafka or another log backbone · interfaces / multiple inheritance.
+Name ownership / DNS replacement · account and name sales · scoped and expiring grants, delegation chains · multiple scoped keys per user · bit-level envelope compaction · batch header bloom filters and proofs of absence · IDM state trees and attestations · pipelines, scripting, node editor, precompiles, indexes · engine expressed in-system · Kafka or another log backbone · interfaces / multiple inheritance · key recovery · account price or throttle · encrypted payloads and group keys · replay checkpoints · type mappings · infra-company billing.

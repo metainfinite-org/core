@@ -22,8 +22,17 @@ A new kind of social / knowledge platform whose foundation is deliberately tiny:
 - **An event's address is four integers: `app/batch/user/seq`.** It names a *position* in an app's published history, not a host. In the final system, data can be served from anywhere as long as a merkle proof comes with it.
 - **The log is history; state is derived.** Blocks, transactions and events are the log. Everything an app shows is a projection built by replaying the log from genesis.
 - **Apps are configuration inside the system.** An app is an identity plus config events (types, views, actions, manifests) interpreted by a generic engine. The aim is apps that are 100% expressed in-system.
+- **Private data is supported** through grants, keys and encrypted payloads, and by batches whose contents are never served on the public internet. Only the merkle root has to go on-chain (`06` §7).
 - **Final system:** identities live on a blockchain; events live off-chain in batches whose merkle roots are published on-chain. Identity managers (IDMs) create and custody accounts, sign users into apps with off-chain grant events, and store/serve their users' events. Users may bind public keys to become self-sovereign — as a backup, not as the daily UX.
 - **First deliverable:** a 100% centralized demo that keeps the real address scheme, envelope and projection model, so that its data can later be imported into the real system and merkle-rooted retroactively.
+
+### Project context
+
+- **Team:** a single developer on a small budget, proficient in C++. Implementation stack: TypeScript end to end (`07` §9), with Rust later for performance-critical parts.
+- **Why two demos:** the **company knowledge base** (10–20 people) is for a real team to start using and getting value from, and possibly paying for. The **public demo** comes later, when the system launches online for a larger audience.
+- **What the company team will do:** build new types and apps that don't exist anywhere else: self-organize, define new kinds of reputation, sort priorities, vote on anything, even on the voting rules (`10`). Not pages or rich-text documents: most events should be of new, strongly typed kinds. No deadline.
+- **What it must do better than Notion or Confluence:** custom types and apps, and the ability to express **any functionality inside the system**. The type / app / view / scripting machinery is therefore the core of the product, not a side feature.
+- **Least settled area:** that same machinery. Expect to rework parts of `05` §4–§6 once building starts and the model can be seen working.
 
 ## 2. Design principles
 
@@ -36,6 +45,7 @@ A new kind of social / knowledge platform whose foundation is deliberately tiny:
 7. **A thin, stable waist** (envelope + address scheme + type meta-model), like IP in the internet hourglass: what is above and below can change independently.
 8. **Determinism wherever the log is interpreted.** Same log prefix ⇒ same result on every machine.
 9. **The demo mimics the real scheme even where it could be simpler**, so nothing produced in it has to be thrown away.
+10. **Modular code, logic in-system.** Every piece of code sits behind a narrow interface and can be rewritten. Business logic lives in types and apps, so the code stays small.
 
 ## 3. Glossary
 
@@ -67,14 +77,15 @@ A new kind of social / knowledge platform whose foundation is deliberately tiny:
 | File | Contents |
 |---|---|
 | `01-core-model.md` | Identity space, addresses, reserved values, batches, blocks & transactions, events, ordering, core SQL |
-| `02-envelope-and-encoding.md` | Envelope fields, version & flags, auth vs signature, canonical serialization, primitives, floats, compactness |
+| `02-envelope-and-encoding.md` | Envelope fields, version & flags, auth vs signature, canonical serialization, primitives, floats, compactness, payload commitment & erasure, encrypted payloads |
 | `03-identity-auth-ownership.md` | Creator, IDMs, ownership, migration, sovereignty, keys, grants, validity rule, rule versioning, app ownership |
-| `04-state-projection-references.md` | Replay algorithm, edits, forks, deletion, pull-request merging, soft/hard references, reproducible computation, schema validation |
-| `05-types-apps-genesis.md` | Meta-type, supersession, inheritance, primitives, apps as config, composition, shell/engine/kernel, makers, genesis listing |
-| `06-distributed-system-and-future.md` | IDM duties, header monitoring, latest-version queries, stable addresses, DNS-like layer, Foundry-style pipelines, related systems |
-| `07-demo-spec.md` | Demo scope, the two deployments, Postgres, projection schema, API, user flows |
+| `04-state-projection-references.md` | Replay algorithm, edits, forks, deletion, pull-request merging, soft/hard references, reproducible computation, schema validation, replay checkpoints |
+| `05-types-apps-genesis.md` | Meta-type, supersession, inheritance, primitives, apps as config, composition, shell/engine/kernel, makers, genesis listing, type convergence, view expression language |
+| `06-distributed-system-and-future.md` | IDM duties, data availability, latest-version queries, stable addresses, DNS-like layer, privacy, spam, indexing & infra companies, chain choice, pipelines, related systems |
+| `07-demo-spec.md` | Demo scope, the two deployments, Postgres, projection schema, API, user flows, read access, implementation stack |
 | `08-development-plan.md` | Phases, dependencies & critical path, risk register, test strategy, definition of done, first week |
 | `09-decisions-and-open-questions.md` | Decision log, withdrawn ideas, open questions, parking lot |
+| `10-in-system-social-mechanics.md` | Moderation, governance and voting, notifications and inboxes, feeds; what the kernel must provide for them |
 
 ## 5. How to use this with a coding assistant
 

@@ -39,6 +39,7 @@ An app is an identity, so the same mechanism applies: the app's on-chain owner i
 - **Rotation:** either the user submits a tx directly, or the IDM submits a tx carrying a message in which the **old key signs the new key**. The key history is a projection of `bind_key` txs; a signature is verified against the key **active at the event's position** in replay order.
 - **All on-chain transactions require signatures**, so every tx initiator is sovereign: in the final system apps and IDMs hold keys from the start, and the genesis creator holds one from block 0.
 - **Explicit per-event signing:** a sovereign user may sign every off-chain event themselves, through any app, without granting it anything (e.g. using "facebook" either via log-in + grant, or by signing each event). Expected to be very rare (≈0.001%).
+- **[Later] Key recovery.** A sovereign user who loses their key loses their escape hatch, and possibly the account too if the IDM is also gone. Options for later: social recovery, guardian keys, or an IDM-held recovery path with a time lock. Deliberately not designed now.
 - **Demo:** no keys, no signatures. The server is trusted. `initiator` is still recorded on every tx and a nullable `pubkey` exists in the projection, so the data model keeps the invariant.
 
 ## 4. Grants (auth events)
@@ -48,6 +49,7 @@ An app is an identity, so the same mechanism applies: the app's on-chain owner i
 - **Lazy issuance:** when a user opens an app they haven't authorized, their IDM issues the grant. Demo: auto-approved and published immediately in its own batch. (Pre-granting every user for every new app was rejected: N events per app, and later users would still have none.)
 - **An event's `auth` points at one specific grant**, not "any grant for (A, U)". So one app can hold several grants with different scopes and revoke each separately → **compartmentalization**: different services/servers of the same app get different scopes; if one is compromised, revoke just its grant. Tiers of events by sensitivity fit here too.
 - **Grant type evolution** (by supersession): scopes / permissions, expiry (auto-expire), time-boxed grants, **[P]** delegation chains (a grant derived from a parent grant with a smaller scope, revocable all at once by revoking the root). None changes the envelope.
+- **Read access for private data** also goes through grants and keys: **[P]** read grants, or a group-key event type that carries a content key encrypted to each member (`06` §7).
 - **A grant's address is not secret.** Security comes from the check that the emitting app equals the grant's app.
 - Events posted by an app for a user before the user signed in (no grant) are **invalid**: they stay in the log and are ignored.
 
@@ -98,9 +100,14 @@ All apps run on the same server, users reach them through a shell in their brows
 ## 8. Config authorship (who may change an app)
 
 - **Final system:** apps are sovereign; they emit their own config events (`user == app`).
-- **Demo [P]:** config events (manifest, views, actions) are authored by **the app identity** (`A/b/A/s`), emitted by the App Maker on behalf of a human whom the IDM's custody policy allows to control the app (by default: the human who created it). This matches the real system.
-- **[O]** Alternative: authored by the creating user with a reference to the app. The decision is isolated behind the App Maker and expected to be refactorable.
-- **Watch later:** users grant an app based on what it does *today*. If its owner silently changes behaviour, existing grants carry over. Once grants have scopes, constrain it there.
+- **Demo (decided for now, to be revisited once code exists):** config events (manifest, views, actions) are authored by **the app identity** (`A/b/A/s`), emitted by the App Maker on behalf of a human whom the IDM's custody policy allows to control the app (by default: the human who created it). This matches the real system.
+- Alternative kept in reserve: authored by the creating user with a reference to the app. The decision is isolated behind the App Maker and expected to be refactorable.
+- **[O] Grant scope vs app changes.** Users grant an app based on what it does *today*. Its owner can change the manifest tomorrow, and existing grants carry over. Undecided. Options:
+  1. accept it, as web apps work today
+  2. scope grants to event types, so a manifest that emits new types needs new consent
+  3. the shell asks for re-consent when the manifest head changes materially
+
+  Once grants have scopes, option 2 is the natural fit.
 
 ## 9. Creator sunset and governance
 

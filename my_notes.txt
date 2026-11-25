@@ -1,27 +1,28 @@
 
 
 
-who builds this: im a single developer on a small budget. I'm proficient in C++, but am thinking of doing this project in other languages - which would you suggest?
-what the 2 demos are for: the one for a company of 10-20 ppl is so they can start using it and to get value out of it and maybe I can get paid, the other demo is for later on when I launch it online for a larger audience
-what should be better than notion and etc: its the custom types and apps and that you'll be able to express any functionality within the system
 
-open problems:
+are CDN updates always initiated with purges by the servers behind them? or maybe some timers are used to invalidate entries, or both? Or does the CDN occasionally ask the server if there is a new version?
 
-- Privacy and access control - yes, through grants and keys and encryption, but also when an app posts a batch on-chain it only posts the merkle root commitment (mandatory) + an IPFS hash of some kind of a header for the batch (optional) - so data can not only be encrypted in the off-chain events but also it can simply not be fetchable by the public internet at all and it can be fetchable only within some company intranet. You said this affects the demo - how? Can't it simply be delayed? What needs to be figured out now in advance?
-- Erasure vs. proofs - you're correct for the proposal to also contain the hash of the payload for the specific event so that the contents can be deleted but the hash of it can be retained, but is it really a part of phase 0? Can't this be done once we start merkelizing the off-chain events - or am I missing something?
-- Data availability - no need for explicit economic incentives - if a service doesn't hold data that it should - then it's a bad service and it will lose customers. The web currently works that way (mostly).
-- Spam and Sybil resistance - the system can indeed be spammed, and regarding off-chain events (new data types & other spam) - this is left to the social incentives on top of this system and some infrastructure services might start flagging some identities (apps, users) as spammers and stop indexing and storing their content. Nobody is forced to store your junk - social consensus ftw. regarding account creation on-chain - that is a separate topic - when the final system is being launched there will either be a price for creating new accounts or some kind of throttle - not currently worth thinking about (but note it for the long term).
-- Type convergence - its true that there will be many duplicate types or minor variations, but apps can choose to work with some "canonical" comment type and not show others by default, or maybe only after some other comment type becomes widely used would the apps accomodate them too - so there's a kind of forcing function to not invent too many new types simply because they won't get automatically used by others - the system will evolve based on usage. It's also possible to make mappings between types as you suggested
-- Global queries and indexing - regarding full text search - hopefully most events in this system will be typed. But who maintains the indexes & runs the infra? Apps will either run on their own infrastructure (remember that apps can post an IP address on-chain with a tx so that they can be contacted through traditional internet protocols), but there will also be infrastructure companies that host many apps so appd developers don't have to run their own infra, and infra/cloud companies can charge apps based on queries/usage by the users.
-- Which chain - only the biggest apps like facebook/twitter will post batches on every block or every few blocks - smaller ones might do it once a minute or even less often. Also the design is such that end users practically never have to touch the chain and even in the cases when they do (like binding a key or migrating to a different IDM) most of these operations will be done on their behalf by the IDM and that activity will be more compact. within 100kb blocks every 10 seconds we can fit a surprising amount of activity and blocks can be faster and bigger too. I haven't settled on a separate L1 or a rollup yet. IDMs can batch the operations of their users.
-- Large media - I was thinking of putting everything inside of the batches, but the batch itself can be a tree of IPFS blobs in a hierarchy and with headers so they can be selectively fetched. But yes, this can be flexible - very large files can indeed be only referenced in the batch itself with a hash commitment and some way to fetch them (again ipfs hash is a possibility).
-- Key recovery - absolutely, but is now the time? I don't think so.
-- The query and sort expression language - we need to think about that
-- Replay cost over time - yes, there will be checkpoints by infra/cloud companies and building the state should be deterministic.
+regarding aggregates - they should be computed within the state of the system based on the log and the rules that evolve within that log, right? so aggregates are queries to the DB, and they should be calculated with... "precompile"-like functionality? or SQL queries? but what if we want the logic of how an aggregate to be compiled to be expressed within the system - how would that work?
 
-update architecture files accordingly.
+And also think of PageRank and how it is an algorithm that is run many iterations and it gradually converges upon the right state - my system will be similar to that in some ways, no? With so much business logic expressed within the system itself about how to compute the reputation and counts and aggregates, which then affects what the current state of the system is if things somewhere are sorted by weight/reputation, which in turn affects how reputation is computed, which in turn... It can get messy, right? What are your thoughts? Maybe such system-wide recalculations should be ran once every X blocks or once an hour in the system as a cron job or something (for block height H). And how would the link between the definition of an aggregate within the system and how that is computed underneath in the database be made? And does that mean that as more business logic is added in the system, that would lead to new tables being necessary in the system - I guess so...? Thoughts?
+
+But for the very first version of the demo we should focus on being able to express a simple reddit-style comment system (through the type/app makers) and that's all.
+
+Also what happens when someone requests to view an event a/b/c/d - does that mean that it should be opened by app `a` by default? I guess so. In the future there's the question how to open that event if app `a` is no longer around - maybe the type maker should also come with a type viewer (which should be pretty straight forward to know how to display the event type - I guess a schema or view should come with every new event type, or maybe the event type IS the schema/view itself? Or was a view something else - something related to layouts? or maybe a layout for a type is sorta tied to the type definition itself? Or maybe there should be multiple possible layouts for the same type? I need help in thinking about this.
 
 
+Also once the demo is running locally and we're making new types of events and apps - each time we accrue more complexity in terms of what can be expressed we should be able to restart the system with a bigger assortment of genesis types & a richer type & app maker such that all other apps & types can still be expressed through them, and between restarts we should be able to keep some of the already created apps, or ... I guess what I'm trying to say is that we should be able to "restart the Matrix" and choose what to keep from the current iteration as the genesis set of events for the next iteration, and this set should gradually be expanded to contain a richer and richer set of types & configs that can express more and more in a cleaner & more reusable way for the next iteration. Does this make sense? Or maybe I'm overthinking this right now and we should simply focus on an initial version just to see what it feels like? Or maybe I'm already misudnerstanding what we've already had in mind in terms of the meta type & seeding the system and etc. - I guess this is related to what you call "the language" which you've put into phase 5 about the type/app makers?
+
+
+
+
+TODO think about:
+- URIs in the demo in the browser - viewing specific events?
+    - also what happens when we view the same event from different apps?
+- should events have a default app for viewing?
+    - actually it should be the app it was published from?
 
 
 

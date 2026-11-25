@@ -10,8 +10,9 @@ Nothing here is built in the demo. It records where the system is going, so demo
 
 ## 2. Real batching on-chain
 
-- `publish_batch` carries the merkle root plus an **IPFS hash of a batch header** (from which the full blob, or parts of it, can be fetched).
-- Apps pick their own intervals (every second, minute…). Merkle trees are built incrementally as events arrive; inclusion proofs are available for any address.
+- `publish_batch` carries the **merkle root (mandatory)** plus, **optionally**, an **IPFS hash of a batch header** from which the full blob, or parts of it, can be fetched. Leaving the header out is how a batch stays private (§7).
+- **[P]** The batch is a hierarchy of IPFS blobs with headers, fetchable selectively. Very large files are referenced by hash plus a locator (`01` §3, `02` §7).
+- Apps pick their own intervals. Only the largest apps publish every block or every few blocks; most publish once a minute or less often. Merkle trees are built incrementally as events arrive; inclusion proofs are available for any address.
 - **[P]** The header contains a sorted list or bloom filter of **authors** in the batch and of **authors of referenced events**; with leaves sorted by `(user, seq)` the tree supports **proofs of absence**, making a header's "nothing for user U here" verifiable.
 - Demo data imports by building batches and trees retroactively.
 
@@ -21,7 +22,7 @@ Nothing here is built in the demo. It records where the system is going, so demo
 - **Notifications.** Apps notify IDMs when events for their users are generated.
 - **Monitoring.** IDMs also watch the chain: they scan **batch headers of all apps** (not small work, but far less than every event), open the ones that mention their users, and drill down only when needed. This also catches **signature-only events** through apps with no grant, which IDMs couldn't otherwise anticipate.
 - **Routing rule for edits:** whoever must be told about an edit is derivable from the event — an edit superseding `x/y/z/a` concerns user `z`, so the emitting app notifies `z`'s IDM. The IDM also knows which apps hold its users' grants and can pull from them as a backstop. Clients can submit signed events directly to the IDM.
-- **No cryptographic guarantee or economic incentive** beyond providing good service and not losing customers' data.
+- **Data availability is a market property (decided).** Nothing forces anyone to hold data, and no pinning, replication mandate or economic layer is planned. A service that doesn't hold data it should is a bad service and loses customers. The web works this way today, mostly. Redundancy comes from many parties holding the same data: the app, the IDM, archives and users' local caches.
 
 ## 4. Latest-version queries
 
@@ -50,19 +51,49 @@ Nothing here is built in the demo. It records where the system is going, so demo
 - **The engine in-system** with a native kernel and rendering precompiles (`05` §5).
 - **Escape hatch for apps** that need real code (hosted code referenced by config).
 
-## 7. Hourglass architecture
+## 7. Privacy and read access
+
+Everything else in these docs assumes public events. Private data is supported in three combinable ways:
+
+1. **Not served on the public internet at all.** On-chain an app posts only the **merkle root** (mandatory). The IPFS header hash is optional, so the batch contents can be fetchable only inside a company intranet, or only for authorized requesters. The chain still orders the batch and commits to it.
+2. **Encrypted payloads** in off-chain events (`02` §8), with keys distributed through **grants and keys**. **[P]** Use read grants, or a group-key event type (a content key encrypted to each member) that is rotated when membership changes.
+3. **Access control by the serving party:** the app or IDM decides whom it serves. This is the demo's form (`07` §3).
+
+- **[O]** Projections over private payloads can be rebuilt only by key holders. Shared, auditable scores (`04` §7) should be computed over public data or plaintext envelope fields.
+- **What the demo must do now:** nothing cryptographic. The core already treats payloads as opaque. Route reads through one seam, `can_read`, and keep non-public events off the CDN (`07` §3). Everything else can wait.
+
+## 8. Spam and Sybil resistance
+
+- **Off-chain spam** (junk types, junk events, fake accounts' events) is **left to social incentives** on top of the system, not to the protocol. Infrastructure services may **flag identities** (apps or users) as spammers and stop indexing and storing their content. Nobody is forced to store anyone's junk: social consensus decides.
+- **[P]** This also bounds header monitoring (§3): IDMs and indexers can skip batches of apps flagged as spam.
+- **[Later] On-chain account creation:** when the final system launches, new accounts cost a price, or creation is throttled. Not worth designing now, but needed before launch (§13).
+
+## 9. Indexing, hosting and infrastructure companies
+
+- Most events are **typed**, so most queries are structured (by type, reference, author) and full-text search matters less. Full-text search is still an indexer service.
+- **Who runs the infrastructure:** apps either run their own, reachable through a network address posted on-chain with `publish_endpoint` (§1), or use **infrastructure / cloud companies that host many apps**, so app developers don't have to run servers. Infra companies **charge apps** by query volume or by their users' usage.
+- **Global queries** such as "everything referencing X across all apps" are answered by these indexers. Returned data is proof-verified (§1). **[O]** Completeness ("nothing is missing") can't be proven, which is the same limit as "latest" (§4), so apps choose indexers by reputation or cross-check several.
+- Infra companies also publish **replay checkpoints** (`04` §9).
+
+## 10. Chain choice and capacity
+
+- **[O]** A dedicated L1 or a rollup: not settled yet.
+- **Load is small by design.** End users practically never touch the chain. When they do (binding a key, migrating to another IDM), the IDM usually acts on their behalf, and **IDMs batch their users' operations** into compact transactions. Only the largest apps publish a batch every block. 100 KB blocks every 10 seconds fit a surprising amount of activity, and blocks can be made faster and bigger.
+- **[P]** Identity txs (`create_identity`, `bind_key`, `transfer_ownership`) should therefore accept many items per tx.
+
+## 11. Hourglass architecture
 
 Like IP in the internet: the narrow waist is **the event envelope + the address scheme + the type meta-model**. Below: storage, chain, merkle trees, IPFS, transport. Above: types, apps, views, pipelines, scripting. Neither side needs to know about the other — which is the strongest argument for getting the envelope right early (version field, canonical serialization, minimal fields).
 
-## 8. Governance
+## 12. Governance
 
 Rule versioning by block number (hard-fork-style social consensus), creator sunset, forkable meta-type, envelope evolved by an ecosystem standards body (`03` §6, §9).
 
-## 9. Economics **[Later]**
+## 13. Economics **[Later]**
 
-Fees for on-chain transactions, the balance a user needs to escape a rogue IDM by transacting directly, account and name sales. Ignored for now.
+Fees for on-chain transactions; the balance a user needs to escape a rogue IDM by transacting directly; account and name sales; a price or throttle for creating accounts (§8); infra companies charging apps for usage (§9). No economic incentive for data availability (§3). Ignored for now.
 
-## 10. Related systems (from memory — verify against current specs)
+## 14. Related systems (from memory — verify against current specs)
 
 | System | What's similar | What's different |
 |---|---|---|
