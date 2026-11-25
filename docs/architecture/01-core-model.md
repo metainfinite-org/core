@@ -127,6 +127,7 @@ CREATE TABLE events (
   signature  BYTEA,
   payload    JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL,
+  visibility SMALLINT NOT NULL DEFAULT 0,  -- [P] 0 public, 1 private; shared-with-set later (06 §7)
   PRIMARY KEY (app, batch, usr, seq),
   CHECK (app > 0 AND batch > 0 AND usr > 0 AND seq > 0)
 );

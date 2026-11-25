@@ -24,7 +24,7 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 16 | Order | Block → tx → (created_at, user, seq) within batch; revocation wins ties | D | 01 §6 |
 | 17 | Refs | One `ref` field; multi-refs in payload; no event_refs table | D | 01 §5 |
 | 18 | Envelope | auth + signature as optional envelope fields; null auth ⇒ signed | D | 02 §3 |
-| 19 | Envelope | Version integer from the start; flags byte | D | 02 §1–2 |
+| 19 | Envelope | Version integer from the start; flags field (varint, P) | D | 02 §1–2 |
 | 20 | Envelope | Signature covers the address; auth path doesn't need it | D | 02 §3 |
 | 21 | Envelope | Stored auth is a reference; bundles inline grants for export | D | 02 §3 |
 | 22 | Encoding | Deterministic canonical form; not protobuf | D | 02 §4 |
@@ -127,7 +127,42 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 119 | Genesis | Symbolic genesis file; iterations ("restart the Matrix"); bundles | P | 05 §6 |
 | 120 | Deploy | Deployments never merge data; types/apps move as bundles | D | 07 §11 |
 | 121 | Moderation | Operator appoints the first tier; elections or reputation later | D | 10 §2 |
-| 122 | Notifications | Notifications are derived; read state is personal state kept by the IDM, not events | P | 10 §4 |
+| 122 | Notifications | Inboxes are derived lists; read state is per-item `seen` events (plus a bulk form) | D | 10 §4 |
+| 123 | Notifications | `seen` events are ordinary events; stored by the IDM; browsed in the inbound app | D | 10 §4 |
+| 124 | Display | App views reuse or override type views; fixed precedence | P | 05 §4 |
+| 125 | Hosting | Abandoned apps can be re-hosted by anyone (read + compute); writing needs ownership transfer or a fork | P | 06 §9 |
+| 126 | Hosting | Hosting announcements as events (claims, not authority) | P | 06 §9 |
+| 127 | Genesis | Genesis file read automatically on first boot; the creator emits it | D | 05 §6 |
+| 128 | Privacy | Visibility is per event: public, private, later shared-with-set | D | 06 §7 |
+| 129 | Privacy | Defaults: per-event → user default per type (settings events) → type suggestion → public; stamped at creation | D | 06 §7 |
+| 130 | Privacy | Private → public by key reveal; public → private only best effort | P | 06 §7 |
+| 131 | Privacy | Demo hack: `visibility` column enforced by `can_read` | P | 06 §7 |
+| 132 | Privacy | `viewed` events make browsing history publishable | P | 06 §7 |
+| 133 | Apps | Inbound app: sink for all incoming events; replaces email and DMs; companion to the IDM | D / companion P | 10 §4 |
+| 134 | Chain | Merkle overhead is modest (1M events ≈ depth 20, ≈ 64 MB of nodes) | D | 06 §2 |
+| 135 | Privacy | Public aggregates count only public events; apps ask the IDM for the user's own private events | D | 06 §7 |
+| 136 | Privacy | Per-event keys derived from a master key; reveal = publish one event key | P | 06 §7 |
+| 137 | Privacy | Sharing by wrapping the content key to each recipient | P | 06 §7 |
+| 138 | Privacy | Reserve the "payload encrypted" flag bit now; the import encrypts demo private events | P | 02 §8 |
+| 139 | DMs | In-system DMs, Signal as a transport, MLS as the natural fit for groups; external channels too | P | 06 §7 |
+| 140 | Proofs | Optional for clients; spot-checking; store the tree (upper levels + leaf hashes as the middle ground) | P | 06 §2 |
+| 141 | Apps | Bookmarks, private notes, lists/playlists as `collection` + membership events | P | 10 §8 |
+| 142 | Envelope | Flags field is a varint; 4 bits assigned (ref, auth, signature, encrypted) | P | 02 §1.1 |
+| 143 | Privacy | A private event is one event; reveal is a separate event; ciphertext bytes never change | P | 02 §8, 06 §7 |
+| 144 | Privacy | Re-privatize = delete the reveal event (best effort) | D | 06 §7 |
+| 145 | Merkle | Two-level leaf `H(H(envelope) ‖ H(payload))`: full, erased, or ghost | P | 02 §7 |
+| 146 | Crypto | Algorithm identifiers on all hashes, keys, signatures; standard crypto first, PQ-hardened before launch with expert review | P | 02 §9 |
+| 147 | Port | Consent at sign-up, opt-out before launch, opted-out identities become ghosts | P | 07 §12 |
+| 148 | Port | No user keys in the public demo; IDM issues master keys at launch | P | 07 §12 |
+| 149 | Port | Shadow merkle trees optional before launch | P | 07 §12 |
+| 150 | Apps | Collections: one canonical membership, any number of orderings (views, arrangements with fractional-index positions, snapshots) | P | 10 §8 |
+| 151 | Reads | Immutable bytes and bundles (cached forever) vs one mutable status lookup (head, deleted/hidden, reveal) | P | 07 §3 |
+| 152 | Reads | Validity and grants are immutable, so they can be bundled; by default the client trusts the host's verdict | P | 07 §3 |
+| 153 | Encoding | DAG-CBOR for the whole event; SSZ considered and not chosen; RLP rejected | P | 02 §4 |
+| 154 | Crypto | Multihash for hashes, multicodec for keys and signatures | D | 02 §9 |
+| 155 | Crypto | Hybrid classical + PQ during the transition; prefer hash-based signatures | P | 02 §9 |
+| 156 | Scripting | Expressions: Datalog/CEL-like; script nodes: deterministic, metered WebAssembly | P | 06 §6 |
+| 157 | Collections | Sort keys over pinned-collation primitives; types may suggest default keys; heterogeneous collections allowed | P | 10 §8 |
 
 ## 2. Withdrawn or superseded (don't re-propose without a new reason)
 
@@ -157,8 +192,10 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | Protocol-level spam prevention for off-chain data | Social consensus, infra flagging |
 | Merkle leaf / payload-hash format as a Phase-0 decision | Decided with real merkelization (P8) |
 | Leaf committing to the payload bytes directly | Leaf commits to `hash(payload)` |
+| "Personal" types readable only by their author | Per-event visibility with defaults |
+| SSZ for the envelope | One encoding (DAG-CBOR); per-field proofs cost more than the ~100-byte envelope |
 | Wiki workflow as the company deployment's main feature | The team builds its own types and apps |
-| An event URL that returns the latest version by default | Exact-version URL plus a separate latest lookup |
+| An event URL that returns the latest version by default | Exact-version URL plus a separate status lookup |
 | Canonical binary encoding as a Phase-0 decision | JSON in the demos; decided in P8 |
 
 ## 3. Open questions
@@ -166,7 +203,7 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 Phase-0 blockers first.
 
 1. **Reserved id range** size; genesis creator and IDM ids.
-2. ~~**Canonical encoding**~~ — deferred to P8; the demos use JSON (decision 107).
+2. ~~**Canonical encoding**~~ — deferred to P8; the demos use JSON (decision 107). Lean: DAG-CBOR for everything (decision 153).
 3. **Schema language** for type payloads.
 4. **Meta-type field list** for genesis.
 5. ~~**Config authorship**~~ — resolved: the app identity, revisit once code exists (decision 43).
@@ -187,10 +224,13 @@ Phase-0 blockers first.
 20. **Metadata leakage of encrypted events** (`02` §8).
 21. **Indexer completeness** — how an app trusts that an indexer missed nothing (`06` §9).
 22. ~~**First moderators**~~ — resolved (decision 121).
-23. **Inbox read state** — proposed: personal state kept by the IDM (decision 122). Confirm.
+23. ~~**Inbox read state**~~ — resolved: `seen` events (decisions 122–123).
 24. ~~**Merging deployments**~~ — resolved: never; types and apps move as bundles (decision 120).
 25. **The expression / derived-value language** — Datalog-like core with aggregates? Scope for the first version after P5 (`04` §10).
+26. ~~**Derived values over private events**~~ — resolved: public aggregates over public events only (decision 135).
+27. **Post-quantum algorithm set** for launch — choose with a cryptographer; follow Ethereum's direction (`02` §9).
+28. **Collection contribution policy** — who may add to a collection (`10` §8).
 
 ## 4. Parking lot (explicitly not now)
 
-Name ownership / DNS replacement · account and name sales · scoped and expiring grants, delegation chains · multiple scoped keys per user · bit-level envelope compaction · batch header bloom filters and proofs of absence · IDM state trees and attestations · pipelines, scripting, node editor, precompiles, indexes · engine expressed in-system · Kafka or another log backbone · interfaces / multiple inheritance · key recovery · account price or throttle · encrypted payloads and group keys · replay checkpoints · type mappings · infra-company billing.
+Name ownership / DNS replacement · account and name sales · scoped and expiring grants, delegation chains · multiple scoped keys per user · bit-level envelope compaction · batch header bloom filters and proofs of absence · IDM state trees and attestations · pipelines, scripting, node editor, precompiles, indexes · engine expressed in-system · Kafka or another log backbone · interfaces / multiple inheritance · key recovery · zero-knowledge events · Signal/MLS integration · account price or throttle · encrypted payloads and group keys · replay checkpoints · type mappings · infra-company billing.

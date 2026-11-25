@@ -35,7 +35,7 @@ Demo: one event per batch per tx, so the inner loop has one iteration.
 - **Version chains are single-author:** a supersede is valid only if authored by the **same identity** as the original (through any app, with that identity's valid auth or signature). Consequence: every valid update is authored by one identity, so that identity's IDM is the only party that has to track versions (`06`). No cross-IDM watching, no edit-grant chains.
 - **Head** = latest valid version in replay order. If two valid edits supersede the same version, the later one is the head; the other remains a branch in the history.
 - **Anyone can fork:** a fork is a new event by someone else referencing the original. It never affects the original's head.
-- **Reads return the latest version by default**; history only on explicit request. Demo: a derived `head` per lineage. The API splits it into an immutable exact-version read and a small latest lookup, so versions stay cacheable (`07` §3).
+- **Reads return the latest version by default**; history only on explicit request. Demo: a derived `head` per lineage. The API splits it into an immutable exact-version read and a small status lookup, so versions stay cacheable (`07` §3).
 
 ## 4. Shared editing via pull requests
 

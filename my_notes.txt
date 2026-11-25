@@ -6,14 +6,39 @@
 
 
 
+
+
+
+
+
+CHECK THE ENTIRE MARKDOWN ARCHITECTURE for consistency! re-read it all - don't just grep parts of it - and look for open questions and inconsistencies!
+
 privacy
+
+
+datalog
+https://en.wikipedia.org/wiki/Datalog
 
 
 reputation, page-rank, multiperspectival views, converngence, weights
 
 
+ipfs multihash
+    An IPFS multihash is a self-describing cryptographic hash format that embeds metadata—specifically the hashing algorithm used and the byte length of the digest—directly into the hash value itself.
+    Because IPFS relies on content-based addressing, multihashes future-proof the network against cryptographic obsolescence. If an algorithm like SHA-256 is ever compromised, IPFS can smoothly transition to a newer algorithm without breaking existing links or changing how identifiers are parsed.
 
-in genesis: “Let there be light”
+
+
+in genesis: "Let there be light!"
+or for the meta-type: "Let there be types!"
+
+
+
+proxy app batchers - to optimize L1 block space - how to preserve event addresses?
+
+
+
+users should be able to plug their AIs through some API to create more data types & apps? but pay for their own AI. But this might explode the system in complexity & slop/spam really quickly
 
 
 

@@ -58,7 +58,7 @@ Decide what can't change once data exists:
 **Exit:** the comment system is built from the UI with zero code; gaps in the block set documented.
 
 ### After P5 — Growing expressiveness (open-ended, unsized)
-Iterate: restart with a richer genesis each time (`05` §6), design the expression language and derived values (`04` §10), then build the in-system mechanics with the makers: voting (including on voting rules), reputation, notification inboxes, custom feeds, moderation (`10`). The company deployment can start as soon as P5 is done and grow with these iterations.
+Iterate: restart with a richer genesis each time (`05` §6), design the expression language and derived values (`04` §10), add per-event visibility with the server-enforced hack (`06` §7), then build the in-system mechanics with the makers: the inbound app, voting (including on voting rules), reputation, notification inboxes, custom feeds, moderation (`10`). The company deployment can start as soon as P5 is done and grow with these iterations.
 
 ### Phase 6 — Company deployment (M)
 - Install on one server (same as local), OIDC SSO, backups, ops docs

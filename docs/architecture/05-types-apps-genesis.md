@@ -95,8 +95,9 @@ Three different things, often confused:
 
 - **The view is not inside the type.** Types are immutable, and every change creates a new type version that old events don't follow. Presentation changes much more often than data shape. If the layout lived in the type, every visual tweak would fork the data type and split the ecosystem. So a type view is a **separate event that references the type**.
 - **Several layouts per type are normal:** compact, card, full page, and different ones per app. Apps pick which type views they use, and type views are ranked by usage like types (§3).
+- **App views reuse or override type views.** An app view composes type views by address. It can reuse the type's default, pick another existing one, or override the rendering of a type inside that app with its own. Precedence when rendering an event: the app's override for the type → the type view the app chose → the type's default type view → the auto-renderer. **[P]** A user preference can sit on top ("always show type T with this type view").
 - **The Type Maker creates the type and its default type view together**, so every new type is displayable from day one.
-- **Every event is always displayable**, even with no type view at all: the kernel's **auto-renderer** derives a layout from the schema (field labels, values, references as links). It also generates a **creation form** from the schema, which is how the Type Maker can offer "create one" for any type.
+- **Every event is always displayable**, even with no type view at all: the kernel's **auto-renderer** derives a layout from the schema (field labels, values, references as links). It also generates a **creation form** from the schema: the input UI for making a *new* event of that type, with a text field per string, a number input per integer, an address picker per reference, and validation from the schema. So any type can be instantiated the moment it exists ("create one" in the Type Maker), and app actions can start from the generated form instead of a hand-designed one.
 - **Opening `/e/a/b/c/d`:** app `a` shows it by default (`07` §10). If app `a` has no view for the type, the type's default type view is used; failing that, the auto-renderer. **[P]** Users can set a preference such as "open events of type T with app X".
 - **If app `a` is gone:** its UI isn't. An app is declarative, and its config is events in the log. As long as the events and the config can be fetched (from IDMs, archives, any host, `06` §1), the shell can still render the event the way app `a` did. Only the app's servers disappear, not its interface.
 
@@ -118,7 +119,7 @@ Three different things, often confused:
 
 ### Genesis — "Satoshi's genesis", half on-chain, half off-chain
 
-Seeded through a **programming interface (a script), not a GUI**; a fixed, versioned file in the repo; replay always starts from it. Because genesis fixes addresses, any change to it is deliberate.
+Seeded through a **programming interface, not a GUI**: on first boot with an empty database, the system reads the genesis data file automatically, and the creator account emits its types and apps, which receive their addresses then. It is a fixed, versioned file in the repo; replay always starts from it. Because genesis fixes addresses, any change to it is deliberate.
 
 Illustrative listing (`C` = creator id above the reserved range, `I` = IDM id; demo instant batching ⇒ one batch per event):
 

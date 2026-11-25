@@ -23,7 +23,7 @@ Prove the model end-to-end on one trusted server, with every identifier and stru
 - Hand-coded Type Maker, App Maker, event-graph visualizer
 - At least one fully declarative app: a board/feed with comments, likes, upvotes, reddit-style sorting
 - Server-side schema validation at insert
-- Reads: an exact-version endpoint (immutable, cacheable) plus a separate small "latest" lookup. The UI shows the latest version by default and history on request. Every read goes through `can_read`, which also hides deleted and moderated events (§3)
+- Reads: an exact-version endpoint (immutable, cacheable) plus a separate small status lookup (latest version, deleted/hidden, revealed). The UI shows the latest version by default and history on request. Every read goes through `can_read`, which also hides deleted and moderated events (§3)
 - Shell owns the browser URL: apps, views and events are linkable (§10)
 - Export of the log as JSON lines (the later import into the real system canonicalizes, `02` §4)
 
@@ -52,21 +52,29 @@ A CDN is a cache in front of the API. It never asks Postgres anything: on a miss
 | Request | Returns | Changes? | Caching |
 |---|---|---|---|
 | `GET /api/e/7/42/5/1` | exactly this version | never, except a takedown | CDN: forever (`s-maxage` one year). Browser: short (`max-age` ≈ 60 s), because browser caches can't be purged |
-| `GET /api/latest/7/42/5/1` | only the head's address, a few bytes | when the event is edited | seconds, or ETag revalidation |
+| `GET /api/bundle/7/42/5/1` | **[P]** verify mode: the event + its merkle proof + the grant it used + the grant's proof (`02` §3) | never | CDN: forever |
+| `GET /api/status/7/42/5/1` | **[P]** everything mutable about the event, in a few bytes: head address, deleted or hidden, reveal-event address | when any of those change | seconds, or ETag revalidation |
 | `GET /api/events?…` (feeds, queries) | lists of addresses plus counts | constantly | not on the CDN, or seconds |
 
-The client asks the tiny "latest" question, then fetches the exact version, which is usually a CDN hit. Web apps already work this way: content-hashed assets (`app.3f9a1c.js`) are cached forever behind a short-lived `index.html`.
+**The split: immutable bytes vs mutable status.** The client never probes for changes one by one. It asks one small **status** question per event it shows: is there a newer version, has it been deleted or hidden, has it been revealed or made private again. That one answer replaces separate "latest" and "reveal" lookups. The answer is short-lived; the event bytes are cached forever, and the two requests run in parallel.
+
+**[P] Bundling immutable parts.** Everything that never changes can be bundled and cached forever:
+- An event's **validity** is judged as of its position (`03` §5), so it never changes after the batch is published. The host can include its verdict in the immutable response.
+- The **grant** an event used, and the proofs, never change either. So the verify-mode bundle is also immutable.
+- The **wrapped keys** of a private event are inside the event itself (`02` §8).
+
+Only the status is mutable, so it stays a separate request. By default the client trusts the host's validity verdict and fetches no grants or proofs. Verify mode (always, or spot-checks, `06` §2) fetches the bundle. In the final system app `a`, or any host, answers the same three requests. Web apps already work this way: content-hashed assets (`app.3f9a1c.js`) are cached forever behind a short-lived `index.html`.
 
 **How CDN entries change.** Two mechanisms, used together:
 
 1. **Expiry (timers):** each response says how long it may be cached (`Cache-Control: s-maxage=…`). After that the CDN does **not** poll on its own. Only when the next request for that URL arrives does it ask the server again, usually with a cheap conditional request (`If-None-Match` with the ETag). The server answers `304 Not Modified` (keep the copy) or sends the new content. `stale-while-revalidate` lets the CDN keep serving the old copy while it refreshes in the background.
 2. **Purge (pushed by the server):** the server tells the CDN through its API to drop a URL now.
 
-Here: exact versions use a very long expiry plus purge for takedowns; latest lookups and feeds use short expiry plus revalidation.
+Here: exact versions and bundles use a very long expiry, plus purge for takedowns; status lookups and feeds use a short expiry plus revalidation.
 
 **Takedowns.** Every major CDN has a purge API (Cloudflare purge by URL or cache tag, CloudFront invalidations, Fastly surrogate keys). When a delete or a moderation hide becomes valid in the projection, a worker purges that event's URL. From then on the API answers **410 Gone** (deleted by its author) or **451 Unavailable** (hidden by moderation, with the address of the deciding event). Feeds drop it on their next refresh, since they are barely cached. The event stays in the log; the host may also drop the payload (`02` §7).
 
-**In-memory cache (Redis or memcached).** Not needed locally or for the company: Postgres's own buffer cache is enough. For the public demo, put it between the API servers and Postgres for the hottest small reads: latest-head lookups, counts (likes per event), assembled feed pages, sessions. Redis is the better fit because its pub/sub can also push live notifications to connected clients (`10` §4); memcached is a pure cache. Keep it behind one `cache` interface so it stays optional and swappable. Invalidation is easy, because the projection worker knows exactly which heads and counts each event changed.
+**In-memory cache (Redis or memcached).** Not needed locally or for the company: Postgres's own buffer cache is enough. For the public demo, put it between the API servers and Postgres for the hottest small reads: status lookups, counts (likes per event), assembled feed pages, sessions. Redis is the better fit because its pub/sub can also push live notifications to connected clients (`10` §4); memcached is a pure cache. Keep it behind one `cache` interface so it stays optional and swappable. Invalidation is easy, because the projection worker knows exactly which heads and counts each event changed.
 
 ### Read and visibility seam **[P]**
 
@@ -74,6 +82,7 @@ Every read goes through one function, `can_read(session, event)`, the read-side 
 
 - events deleted by their author (`04` §5)
 - events hidden by the moderation authority this host follows (`10` §2), read from a projection
+- **[P]** private events when the reader is not their author (visibility model, `06` §7)
 
 Moderators reviewing a dispute can still see hidden content. There are no private events or restricted spaces at the start. If they are needed later, they plug in here as projection-backed ACLs defined by events, which later map onto read grants and keys (`06` §7). No encryption in the demo.
 
@@ -138,7 +147,8 @@ CREATE TABLE custody (identity BIGINT, human_account BIGINT, role TEXT);        
 |---|---|
 | `POST /apps/:app/events` `{user, type, ref?, payload}` | `authorize(session, app, user)` → schema check → hard-dependency check → atomic batch allocation → insert event + `publish_batch` tx → returns address |
 | `GET /api/e/:app/:batch/:user/:seq` | **exactly this version**, immutable, CDN-cacheable (§3); 410/451 if deleted or hidden |
-| `GET /api/latest/:app/:batch/:user/:seq` | head address only (same shape as the future IDM query); `?history=1` the whole chain |
+| `GET /api/status/:app/:batch/:user/:seq` | head address, deleted/hidden, reveal (same role as the future IDM query); `?history=1` the whole chain |
+| `GET /api/bundle/:app/:batch/:user/:seq` | **[P]** event + proofs + grant(s), immutable (verify mode) |
 | `GET /api/events?ref=…&type=…&sort=…` | engine queries (descendant types included) |
 | `GET /apps/:app/batches/open` | read-only pending view (trivially empty in the demo) |
 | `POST /idm/grants` / `DELETE /idm/grants/:addr` | lazy issue (auto-approve) / revoke |
@@ -201,3 +211,12 @@ The shell is a "browser inside the browser", and it **owns the real browser URL*
 - **[P] A `deployment.yml` file** holds the deployment's parameters: name, `first_identity` (1 for local and company deployments, e.g. 1,000,001 for the public demo), block interval, sign-in provider. Secrets (database URL, OAuth client secret) come from environment variables, not from the file.
 - **Genesis parameters are read once**, when genesis runs on an empty database, and are recorded in genesis itself, e.g. in the creator's `create_identity` tx. The database is then self-describing, and editing the file later doesn't change an existing deployment.
 - **Deployments never merge their data** (decided), so their id ranges may overlap: local and company start at 1. Interesting **types and apps move between deployments as bundles** with symbolic references, imported as new events (`05` §6).
+
+## 12. Porting the public demo to the final system
+
+The goal: the public demo moves onto the blockchain plus off-chain batches with minimal changes. The company deployment always stays on-prem, so none of this applies to it.
+
+- **Consent.** **[P]** Sign-up says plainly that public events may be carried into the launched system. Before launch, every identity can **opt out**.
+- **Opted-out identities become ghosts, not holes.** Their events keep their addresses, but the import publishes only their leaf hashes (`02` §7): nothing about the event is revealed, not even its type or what it referenced. Other people's events that reference a ghost stay valid, and their comments remain browsable. The UI shows the target as a **ghost** ("not carried over"), distinct from deleted and from private. The identity itself still exists on-chain, owned by the IDM, with no data.
+- **No user keys in the public demo.** **[P]** Server-held user keys would add breach risk without adding trust, because the server holds them anyway, so there is no sovereignty gained. Users don't need keys for the import either: their events are authorized by grants (`03` §4), and only batch roots and chain txs need signatures, made by the apps and the IDM at launch. At launch, the IDM issues each user a master key and encrypts their private events with it before the trees are built (`02` §8). Binding personal keys stays optional, as in the final design (`03` §3).
+- **Merkle trees before launch: optional.** **[P]** Building trees in a background "shadow" job (never on the write path) would exercise the pipeline early. It needs only provisional algorithms (`02` §9). It is not required: the import builds trees retroactively anyway.

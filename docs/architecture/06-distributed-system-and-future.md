@@ -15,6 +15,8 @@ Nothing here is built in the demo. It records where the system is going, so demo
 - Apps pick their own intervals. Only the largest apps publish every block or every few blocks; most publish once a minute or less often. Merkle trees are built incrementally as events arrive; inclusion proofs are available for any address.
 - **[P]** The header contains a sorted list or bloom filter of **authors** in the batch and of **authors of referenced events**; with leaves sorted by `(user, seq)` the tree supports **proofs of absence**, making a header's "nothing for user U here" verifiable.
 - Demo data imports by building batches and trees retroactively.
+- **Merkle cost is modest.** A batch of 1M events gives a binary tree of depth 20 (2^20 ≈ 1.05M) with about 2M nodes. At 32-byte hashes that is about 64 MB (≈ 61 MiB) if every node is kept. The hashing parallelizes well, and SHA-256 with hardware support does millions of small hashes per second per core. Inclusion proofs are 20 hashes, about 640 bytes. **[P]** Hosts may keep only the leaf hashes (32 MB) or the upper levels and recompute the rest. Only the root goes on-chain, so even very high-volume event types (direct messages, `viewed`, `seen`) are fine off-chain.
+- **[P] Proofs are optional for clients.** By default a device fetches events without proofs to save bandwidth. A setting makes it require proofs for everything it views, or **spot-check** a random sample, which catches a dishonest server with high probability at a fraction of the cost. Serving proofs on demand favours keeping the whole tree stored: for typical events the tree is small next to the data. For tiny events such as likes it can be about the same size as the data, and keeping only the upper levels plus the leaf hashes is the middle ground.
 
 ## 3. IDM responsibilities (best effort)
 
@@ -47,6 +49,9 @@ Nothing here is built in the demo. It records where the system is going, so demo
 
 - **Ontology first** (Palantir Foundry inspiration): define types and links, then build pipelines and apps on them.
 - **Pipelines / scripting nodes** with **typed inputs and outputs**, and an app that is a **node-based editor**.
+- **[P] Two tiers of in-system logic:**
+  - **Expressions and derived values:** a small non-Turing-complete language (Datalog- or CEL-like, `04` §10). It always terminates and is cheap to analyse.
+  - **Script nodes, for anything more:** **WebAssembly** in a deterministic profile: no threads, canonical NaNs, no relaxed SIMD, and metered execution ("fuel" or gas) so every run is bounded. Wasm is portable, sandboxed and can be compiled from many languages, and a script node's code is stored as an event (bytes plus a multihash). Serialization formats such as SSZ or CBOR describe *data*; Wasm is the *code*.
 - **Precompiles:** algorithms that become popular and heavy migrate from the in-system scripting language to fast native implementations inside the system, with the option to build **indexes**. Typed node interfaces make swapping a script for a precompile transparent; deterministic arithmetic (`02` §5) matters here.
 - **The engine in-system** with a native kernel and rendering precompiles (`05` §5).
 - **Escape hatch for apps** that need real code (hosted code referenced by config).
@@ -62,6 +67,40 @@ Everything else in these docs assumes public events. Private data is supported i
 - **[O]** Projections over private payloads can be rebuilt only by key holders. Shared, auditable scores (`04` §7) should be computed over public data or plaintext envelope fields.
 - **What the demo must do now:** nothing cryptographic. The core already treats payloads as opaque. Route reads through one seam, `can_read`, and keep non-public events off the CDN (`07` §3). Everything else can wait.
 
+### Visibility model (decided)
+
+**Visibility is a property of every event**, not of a type or a kind of data. Any event anyone generates can be public or private, and later shared with a given set of identities.
+
+- **Levels:** **public**, **private** (the author only), and **[Later] shared with a set of identities**, which is more complicated and deferred. Direct messages will be its first real use.
+- **Defaults, from most to least specific:** the visibility chosen for this event → the user's own default for this type → the type's suggested default → public. The user's defaults are **settings events**, and those can themselves be public or private.
+- **Resolved at creation and stamped on the event.** Changing a default later never changes old events. That matches the final system, where encryption happens when the event is created.
+- **Changing it afterwards:** private → public is always possible. Public → private is only best effort, like a delete: copies may exist (`04` §5). The hope is that infrastructure companies eventually follow strict laws in friendly jurisdictions.
+- **No "personal" category.** Nothing is inherently private: read marks, viewing history or browsing history can be public if their author wants. **[P]** Apps or the shell may emit `viewed` events for what the user looked at, private by default, so a user can publish their history the way nobody can publish their YouTube or Chrome history today.
+- **Derived values over private events (decided):** public aggregates count only public events, so a public like count never leaks private likes. An app still shows *you* your own private like by asking your IDM whether you have one for that event. **[Later]** zero-knowledge events.
+### Encryption keys for private events **[P]**
+
+One master key per user, and a **separate derived key per event**: `event_key = KDF(master_key, event_address)`, e.g. HKDF. The master key is either bound to the account or issued by the IDM.
+
+- **Nothing extra to store:** each event key is recomputed from the master key and the address.
+- **Making one event public = publishing its event key.** The key derivation is one-way, so that key unlocks only that event. The event keeps its address, references to it keep working, and anyone can check that the decrypted content matches the committed `hash(payload)` (`02` §7).
+- **The event's bytes stay the ciphertext forever.** A reveal is a separate event carrying the key and referencing the private event. A CDN that cached the ciphertext needs no purge: clients fetch the reveal and decrypt locally. Hosts may also serve a decrypted convenience copy, which anyone can check against the ciphertext and the key.
+- **Making it private again** = deleting the reveal event. Hosts drop their copies of the reveal and serve the event as private again. It is best effort, like any public → private change: whoever saved the key keeps it.
+- **Re-publishing the plaintext** as an update-like event is also acceptable. It is just weaker: nobody can verify that it matches the original unless the original also committed to a salted hash of the plaintext.
+- **Sharing with a set of identities:** encrypt the event's content key to each recipient's key (standard envelope encryption, as in PGP or age). The wrapped keys travel in the payload or in separate key events, so the envelope doesn't change. Groups use a group key, rotated when membership changes.
+- **Master key rotation:** new events use the new key, and old events keep theirs.
+
+### Direct messages, Signal and MLS
+
+There can be several ways, side by side:
+
+- **In-system DMs:** events shared with the recipients, using the keys above. History syncs through IDMs like any other event, and messages can be referenced or revealed later. No forward secrecy: whoever steals your master key can read your old messages.
+- **The Signal protocol** works as a *transport*, with each ratchet message carried as an opaque event payload, but its guarantees pull the other way: per-message keys are deleted (forward secrecy), so history can't be re-fetched from the IDM, nothing can be revealed later, and the message content is invisible to references, aggregates and re-hosting. Fine for "maximum privacy" chats, as one option.
+- **MLS (Messaging Layer Security, RFC 9420)** is worth studying: group key agreement with forward secrecy, organized in **epochs**, where every membership change is a "commit" message that must be delivered in one agreed order. **The log is exactly the ordered delivery service MLS assumes**, which makes it the most natural fit for private groups.
+- **External channels** (Signal itself, email) stay possible alongside.
+
+- **The demos:** no cryptography. **[P]** A `visibility` column on events, enforced by the server through `can_read` (`07` §3); later it maps onto the encryption flag (`02` §8). Not in the first demo target; it comes with the growing-expressiveness stage (`08`).
+- **Changing visibility in the demos also needs no extra events at creation:** `visibility` is set when the event is created. Later changes are events, as in the final system: a **reveal** (private → public) and a **hide** (public → private, like a delete).
+
 ## 8. Spam and Sybil resistance
 
 - **Off-chain spam** (junk types, junk events, fake accounts' events) is **left to social incentives** on top of the system, not to the protocol. Infrastructure services may **flag identities** (apps or users) as spammers and stop indexing and storing their content. Nobody is forced to store anyone's junk: social consensus decides.
@@ -74,6 +113,15 @@ Everything else in these docs assumes public events. Private data is supported i
 - **Who runs the infrastructure:** apps either run their own, reachable through a network address posted on-chain with `publish_endpoint` (§1), or use **infrastructure / cloud companies that host many apps**, so app developers don't have to run servers. Infra companies **charge apps** by query volume or by their users' usage.
 - **Global queries** such as "everything referencing X across all apps" are answered by these indexers. Returned data is proof-verified (§1). **[O]** Completeness ("nothing is missing") can't be proven, which is the same limit as "latest" (§4), so apps choose indexers by reputation or cross-check several.
 - Infra companies also publish **replay checkpoints** (`04` §9).
+
+### Apps outlive their operators
+
+An app is declarative: its config is events in the log. Its server-side state (projections, derived values, indexes) is a deterministic function of the log plus that config. So **any host can run an abandoned app again**: fetch the config and the events (from IDMs, archives, any host), replay or start from a checkpoint (`04` §9), and serve the same views and computed state. Even if nobody answers at app A's on-chain endpoint any more.
+
+- **Reading and computing: anyone, without permission.** A re-host serves A's events and computes A's state exactly as A did.
+- **Writing as A: only with A's authority.** New events in A's batches need A's owner (or keys). If A's owner still exists, it can hand A over with `transfer_ownership`, an official revival. If not, the re-host runs A's config under a **new app identity**: a fork that supersedes A's manifest (`05` §4). Old content keeps A's addresses, new content gets the fork's.
+- **[P] Hosting announcements:** anyone can publish an event referencing A's manifest that says "app A is mirrored, or forked as B, at endpoint E". It is a claim, not authority: A's own on-chain endpoint stays authoritative, and clients choose which announcements to trust (reputation, `10`).
+- **What is lost:** only what was never in the log, i.e. A's private operational data, secrets and keys. Apps that used the code escape hatch (`05` §4) are not portable this way, which is one more reason to keep apps declarative.
 
 ## 10. Chain choice and capacity
 
