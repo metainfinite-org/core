@@ -180,6 +180,14 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 172 | Types | No `supersedes` field; type versions are edits; superseding is a claim, adoption is social consensus | D | 05 §3 |
 | 173 | Envelope | Supersede flag: `ref` = previous version; lineage relations come from the root | P | 04 §3 |
 | 174 | Deploy | Local prerequisites: Node LTS, pnpm, PostgreSQL 16+, Git; Docker optional | D | 07 §11 |
+| 175 | Impl | Genesis is written entirely in block 1 at the genesis time; normal operation starts in block 2 | P | 05 §6 |
+| 176 | Impl | Projections are in memory and rebuilt by replay at startup; Postgres stores only the log (plus `identity_counters` for allocation) | P | 07 §5 |
+| 177 | Impl | The Postgres writer serializes write transactions with one advisory lock | P | 07 §4 |
+| 178 | Impl | Insert-time check = the same rule set run against the caught-up projection; rejected events burn no batch | D | 04 §8 |
+| 179 | Impl | Deleting any version deletes the whole lineage; a delete releases unique-constraint slots | P | 04 §5 |
+| 180 | Impl | Built-in live aggregates per (target, type and its bases): count and sum of `payload.value` | P | 04 §10 |
+| 181 | Impl | Revocation by the user's *current* owner; a transfer is valid only if initiated by the current owner | P | 03 §2 |
+| 182 | Impl | JSON payload rules enforced at write: safe integers only, no floats, NFC strings | D | 02 §4 |
 
 ## 2. Withdrawn or superseded (don't re-propose without a new reason)
 

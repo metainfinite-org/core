@@ -4,14 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository status
 
-This repo has **no code yet**. There are no build, lint or test commands. It holds architecture design docs and the source material they came from, for a platform that implements two talks (see [README.md](README.md)):
+A platform that implements two talks (see [README.md](README.md)): *Internet 2.0: The Global Brain* (code::dive 2023) and *Headjack: Decentralized identity & content addressing at web-scale* (code::dive 2022). Phases 1–2 of the plan (core log, projection engine) are implemented; see the status in [08 §1.1](docs/architecture/08-development-plan.md). TypeScript end to end, PostgreSQL for persistence.
 
-- *Internet 2.0: The Global Brain* (code::dive 2023)
-- *Headjack: Decentralized identity & content addressing at web-scale* (code::dive 2022)
+## Commands
 
-Once implementation starts, the stack is TypeScript end to end (Node + React, `BigInt` for 64-bit ids; see [07-demo-spec.md §9](docs/architecture/07-demo-spec.md)) with PostgreSQL for both deployments, a single-node docker compose for the demo, and an outbox table with Postgres notifications instead of Kafka (see [07-demo-spec.md](docs/architecture/07-demo-spec.md)). Update this file with real commands when code lands.
+Run from the repo root (pnpm workspaces):
 
-## Layout
+- `pnpm install`
+- `pnpm test`: all tests (Vitest). One file: `pnpm vitest run packages/integration/test/validity.test.ts`. One test: add `-t "<name substring>"`.
+- `pnpm typecheck`: `tsc --noEmit` over all packages (TypeScript 7).
+- `pnpm start`: boots a node from `deployment.yml` and prints genesis info and the projection hash. `pnpm start demo` writes a small reddit-style scenario; `pnpm start symbols` prints the genesis symbol table.
+- **Postgres:** set `storage: postgres` in `deployment.yml` and `DATABASE_URL`. The Postgres tests run only when `DATABASE_URL` is set, and they **truncate** the log tables, so point them at a disposable database.
+
+Packages export their TypeScript sources directly (`"exports": "./src/index.ts"`); there is no build step. Scripts run through `tsx`.
+
+## Code layout
+
+One package per replaceable piece, under [packages/](packages/):
+
+| Package | Role |
+|---|---|
+| `core` | Addresses (BigInt), the event envelope, blocks/txs, JSON payload rules, `stableStringify` |
+| `log` | `LogStore` interface, `MemoryLogStore`, `LogWriter` (the write path, atomic batch allocation), `BlockProducer` |
+| `log-pg` | `PgLogStore` (Kysely + pg), schema in `sql/001_log.sql` |
+| `rules` | JSON Schema subset validator; rule set 1 (validity: auth, types, supersede, delete, grants, constraints) over a read-only `RuleContext` |
+| `projector` | Deterministic replay (block → tx → within-batch order), derived tables, live aggregates, projection `hash()` |
+| `genesis` | `genesis.v1.json` (symbolic names like `@type:post`) compiled to addresses, and `seedGenesis` |
+| `config` | `deployment.yml` parsing |
+| `node` | `startNode` (store + writer with insert-time check + projector + genesis on first boot) and the CLI |
+| `integration` | Cross-package tests and the test kit (`test/kit.ts`) |
+
+How the pieces fit: the writer appends to the log through a `LogStore` and never decides validity. The projector replays the log and asks the rule set for each event, passing it a `RuleContext` that reads the projection as of that position. The node runs the same rules before inserting, only to fail early. Protocol types (meta, grant, revoke, delete) come from the genesis plan, not from hard-coded addresses. Every derived table must be included in `Projector.hash()`, and the determinism tests compare a full rebuild with incremental catch-up.
+
+## Layout of the docs
 
 - [docs/architecture/](docs/architecture/): the architecture set, files `00-README.md` to `10-in-system-social-mechanics.md`. It was written from a long design conversation.
 - [my_notes.txt](my_notes.txt): the user's raw notes and requirements. Some are in Bulgarian (transliterated). Ideas here that are not invalidated elsewhere are meant to end up in the architecture docs.

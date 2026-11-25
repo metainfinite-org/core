@@ -1,0 +1,16 @@
+{
+  "name": "@ev/integration",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end tests across log, genesis, rules and projector.",
+  "dependencies": {
+    "@ev/core": "workspace:*",
+    "@ev/log": "workspace:*",
+    "@ev/rules": "workspace:*",
+    "@ev/projector": "workspace:*",
+    "@ev/genesis": "workspace:*",
+    "@ev/config": "workspace:*",
+    "@ev/node": "workspace:*"
+  }
+}

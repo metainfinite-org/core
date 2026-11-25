@@ -1,0 +1,9 @@
+{
+  "name": "@ev/genesis",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "files": ["src", "genesis.v1.json"],
+  "dependencies": { "@ev/core": "workspace:*", "@ev/log": "workspace:*" }
+}

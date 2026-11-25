@@ -1,0 +1,24 @@
+{
+  "name": "@ev/node",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Boots a node: log store, genesis on first boot, projector. Entry point for the CLI and, later, the server.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@ev/config": "workspace:*",
+    "@ev/core": "workspace:*",
+    "@ev/genesis": "workspace:*",
+    "@ev/log": "workspace:*",
+    "@ev/log-pg": "workspace:*",
+    "@ev/projector": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}

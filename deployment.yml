@@ -1,0 +1,19 @@
+# Deployment parameters (07 §11). Genesis parameters are read once, when
+# genesis runs on an empty log; editing them later doesn't change an existing
+# deployment. Secrets (database URL, OAuth secrets) come from environment
+# variables, never from this file.
+
+name: local
+
+# The creator gets this id; every other identity is allocated above it.
+# 1 for local and company deployments; e.g. 1000001 for the public demo.
+first_identity: 1
+
+# How often the open block is sealed.
+block_interval_ms: 1000
+
+# "dev": pick or type a username, no password (local only). "oidc" on servers.
+sign_in: dev
+
+# "memory" (nothing persists) or "postgres" (needs DATABASE_URL).
+storage: memory

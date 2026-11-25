@@ -76,6 +76,13 @@ Iterate: restart with a richer genesis each time (`05` §6), design the expressi
 ### Phase 8 — Toward the real system (XL, post-demo)
 Merkle trees and real batching (headers, IPFS, tree-of-blobs batches, large media by hash), the erasure-safe leaf format (`02` §7), chain choice (L1 vs rollup) and integration, privacy (encrypted payloads, read grants / group keys, intranet-only batches), replay checkpoints, keys/signatures/rotation, ownership transfer UX, IDM storage + notifications + header monitoring, latest-version attestation and state trees, stable addresses, endpoints/DNS layer, demo-data import with retroactive trees, pipelines/scripting/node editor, precompiles; canonical binary encoding; performance-critical parts in Rust with horizontal scaling, sharding and Kafka/Redpanda.
 
+## 1.1 Status (2026-11-25)
+
+- **P1 and P2 are implemented** on branch `core-log`: core types, the log store interface with in-memory and Postgres implementations, the write path with atomic batch allocation, the block producer, the symbolic genesis file and seed, rule set 1, the replay projector with projection hash, `deployment.yml`, and a CLI.
+- **Tested:** 53 tests (contract tests for the log store, validity rules, constraints, aggregates, determinism). The Postgres store type-checks, but its tests have not run yet: they need `DATABASE_URL`.
+- **Implementation decisions** are logged in `09` as decisions 175–182.
+- **Next:** P3 (server, dev login, lazy grants), then P4 (shell, engine, makers).
+
 ## 2. Dependencies
 
 ```

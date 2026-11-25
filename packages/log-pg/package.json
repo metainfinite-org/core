@@ -1,0 +1,19 @@
+{
+  "name": "@ev/log-pg",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PostgreSQL implementation of the LogStore interface.",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@ev/core": "workspace:*",
+    "@ev/log": "workspace:*",
+    "kysely": "^0.29.9",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@ev/genesis": "workspace:*",
+    "@ev/projector": "workspace:*",
+    "@types/pg": "^8.23.1"
+  }
+}

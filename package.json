@@ -1,0 +1,16 @@
+{
+  "name": "core-monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "pnpm --filter @ev/node start"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.7",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}

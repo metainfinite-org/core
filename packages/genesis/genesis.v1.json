@@ -1,0 +1,136 @@
+{
+  "format": 1,
+  "name": "genesis v1",
+  "time": "2026-01-01T00:00:00.000Z",
+  "comment": "Symbolic genesis (05 §6). Strings of the form @id:<name>, @type:<name> or @event:<name> are replaced by the id or address they get when the seed runs. Identities are created in order (the first is the creator, at first_identity); events are emitted in order, each in its own batch.",
+  "protocol": {
+    "meta": "@type:type",
+    "grant": "@type:grant",
+    "revoke": "@type:revoke",
+    "delete": "@type:delete"
+  },
+  "identities": [
+    { "name": "creator", "initiator": null },
+    { "name": "idm", "initiator": "@id:creator" },
+    { "name": "type-maker", "initiator": "@id:creator" },
+    { "name": "app-maker", "initiator": "@id:creator" }
+  ],
+  "events": [
+    {
+      "name": "type:type",
+      "app": "@id:creator",
+      "user": "@id:creator",
+      "type": "@type:type",
+      "payload": {
+        "name": "type",
+        "schema": {
+          "type": "object",
+          "required": ["name", "schema"],
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "schema": { "type": "object" },
+            "extends": { "type": "string", "format": "address" },
+            "constraints": { "type": "array", "items": { "type": "object" } },
+            "extensions": { "type": "object" }
+          }
+        },
+        "extensions": { "genesis": { "message": "Let there be types." } }
+      }
+    },
+
+    { "name": "type:integer", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "integer", "schema": { "type": "integer" } } },
+    { "name": "type:string", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "string", "schema": { "type": "string" } } },
+    { "name": "type:bytes", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "bytes", "schema": { "type": "string", "pattern": "^([0-9a-f]{2})*$" } } },
+    { "name": "type:boolean", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "boolean", "schema": { "type": "boolean" } } },
+    { "name": "type:timestamp", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "timestamp", "schema": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$" } } },
+    { "name": "type:address", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "address", "schema": { "type": "string", "format": "address" } } },
+    { "name": "type:list", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "list", "schema": { "type": "array" } } },
+    { "name": "type:record", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "record", "schema": { "type": "object" } } },
+    { "name": "type:decimal", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "decimal", "schema": { "type": "string", "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$" } } },
+    { "name": "type:float64", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "float64", "schema": { "type": "string", "pattern": "^[0-9a-f]{16}$", "description": "raw IEEE 754 bits as hex; arithmetic on floats is never consensus-relevant (02 §5)" } } },
+
+    { "name": "type:grant", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "grant", "schema": {
+        "type": "object", "required": ["app", "user"], "additionalProperties": false,
+        "properties": { "app": { "type": "string", "format": "id" }, "user": { "type": "string", "format": "id" } } } } },
+    { "name": "type:revoke", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "revoke", "schema": { "type": "object", "additionalProperties": false, "properties": {} } } },
+    { "name": "type:delete", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "delete", "schema": {
+        "type": "object", "additionalProperties": false,
+        "properties": { "reason": { "type": "string", "maxLength": 1000 } } } } },
+
+    { "name": "type:type-view", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "type view", "schema": {
+        "type": "object", "required": ["type", "layout"],
+        "properties": { "type": { "type": "string", "format": "address" }, "name": { "type": "string" }, "layout": { "type": "object" } } } } },
+    { "name": "type:type-annotation", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "type annotation", "schema": {
+        "type": "object", "required": ["hints"],
+        "properties": { "hints": { "type": "object" } } } } },
+    { "name": "type:view", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "view", "schema": {
+        "type": "object", "required": ["name", "query", "layout"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "query": { "type": "object" },
+          "layout": { "type": "string", "enum": ["list", "tree"] },
+          "sort": { "type": "string", "enum": ["new", "top", "hot"] }
+        } } } },
+    { "name": "type:action", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "action", "schema": {
+        "type": "object", "required": ["name", "creates"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "creates": { "type": "string", "format": "address" },
+          "ref": { "type": "string", "enum": ["selected", "none"] }
+        } } } },
+    { "name": "type:manifest", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "manifest", "schema": {
+        "type": "object", "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "views": { "type": "array", "items": { "type": "string", "format": "address" } },
+          "actions": { "type": "array", "items": { "type": "string", "format": "address" } }
+        } } } },
+
+    { "name": "type:post", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "post", "schema": {
+        "type": "object", "required": ["title"],
+        "properties": { "title": { "type": "string", "minLength": 1, "maxLength": 300 }, "body": { "type": "string", "maxLength": 40000 } } },
+        "extensions": { "hints": { "display_template": "{title}", "sort_keys": ["hot", "new", "top"] } } } },
+    { "name": "type:comment", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "comment", "schema": {
+        "type": "object", "required": ["body"],
+        "properties": { "body": { "type": "string", "minLength": 1, "maxLength": 10000 } } },
+        "constraints": [ { "kind": "ref_type", "types": ["@type:post", "@type:comment"] } ],
+        "extensions": { "hints": { "display_template": "{body}" } } } },
+    { "name": "type:reaction", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "reaction", "schema": { "type": "object", "properties": {} },
+        "constraints": [ { "kind": "unique", "per": ["author", "ref"], "resolve": "latest" } ] } },
+    { "name": "type:like", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "like", "extends": "@type:reaction", "schema": { "type": "object", "properties": {} } } },
+    { "name": "type:vote", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "vote", "extends": "@type:reaction", "schema": {
+        "type": "object", "required": ["value"],
+        "properties": { "value": { "type": "integer", "enum": [1, -1] } } } } },
+    { "name": "type:proposal", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "proposal", "schema": {
+        "type": "object", "required": ["patch"], "properties": { "patch": { "type": "object" } } } } },
+    { "name": "type:merge", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
+      "payload": { "name": "merge", "schema": {
+        "type": "object", "required": ["proposals"],
+        "properties": { "proposals": { "type": "array", "items": { "type": "string", "format": "address" } } } } } }
+  ]
+}
