@@ -6,7 +6,7 @@
 // items, enum, const, minLength, maxLength (code points), minimum, maximum,
 // minItems, maxItems, pattern, format ("address" | "id"), title, description.
 
-import { isAddressString, stableStringify, type JsonValue } from "@ev/core";
+import { isAddressString, stableStringify, type JsonValue } from "@ev/core/browser";
 
 export type Schema = { readonly [key: string]: JsonValue };
 

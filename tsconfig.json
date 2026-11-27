@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
     "target": "es2023",
-    "lib": ["es2023"],
+    "lib": ["es2023", "dom", "dom.iterable"],
     "module": "preserve",
     "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -13,5 +14,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["packages/*/src", "packages/*/test", "vitest.config.ts"]
+  "include": ["packages/*/src", "packages/*/test", "packages/web/vite.config.ts", "vitest.config.ts"]
 }

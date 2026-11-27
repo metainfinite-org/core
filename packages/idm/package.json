@@ -1,0 +1,16 @@
+{
+  "name": "@ev/idm",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The default identity manager (03): account directory, custody policy, lazy grants, revocation, app creation.",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@ev/core": "workspace:*",
+    "@ev/log": "workspace:*",
+    "@ev/projector": "workspace:*",
+    "kysely": "^0.29.9",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": { "@types/pg": "^8.23.1" }
+}

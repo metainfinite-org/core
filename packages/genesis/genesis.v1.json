@@ -7,7 +7,8 @@
     "meta": "@type:type",
     "grant": "@type:grant",
     "revoke": "@type:revoke",
-    "delete": "@type:delete"
+    "delete": "@type:delete",
+    "manifest": "@type:manifest"
   },
   "identities": [
     { "name": "creator", "initiator": null },
@@ -81,28 +82,36 @@
         "properties": { "hints": { "type": "object" } } } } },
     { "name": "type:view", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
       "payload": { "name": "view", "schema": {
-        "type": "object", "required": ["name", "query", "layout"],
+        "type": "object", "required": ["name", "root"],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "query": { "type": "object" },
-          "layout": { "type": "string", "enum": ["list", "tree"] },
-          "sort": { "type": "string", "enum": ["new", "top", "hot"] }
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "props": { "type": "object", "description": "prop name -> { type: address | string | id, default? }; serialized into the URL" },
+          "root": { "type": "object", "description": "component tree of whitelisted blocks (@ev/engine)" }
         } } } },
     { "name": "type:action", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
       "payload": { "name": "action", "schema": {
         "type": "object", "required": ["name", "creates"],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "label": { "type": "string", "maxLength": 200 },
           "creates": { "type": "string", "format": "address" },
-          "ref": { "type": "string", "enum": ["selected", "none"] }
+          "ref": { "type": "string", "description": "none, $item, $props.<name> or a literal address" },
+          "fields": { "type": "array", "items": { "type": "string" }, "description": "payload fields the form asks for; default all" },
+          "fixed": { "type": "object", "description": "payload values set without asking, e.g. { value: 1 }" }
         } } } },
     { "name": "type:manifest", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
       "payload": { "name": "manifest", "schema": {
         "type": "object", "required": ["name"],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "description": { "type": "string", "maxLength": 2000 },
+          "home": { "type": "string", "format": "address" },
           "views": { "type": "array", "items": { "type": "string", "format": "address" } },
-          "actions": { "type": "array", "items": { "type": "string", "format": "address" } }
+          "actions": { "type": "array", "items": { "type": "string", "format": "address" } },
+          "types": { "type": "array", "items": { "type": "string", "format": "address" } },
+          "open": { "type": "object", "description": "type address -> view address that opens one event of it (prop: node)" },
+          "typeViews": { "type": "object", "description": "type address -> type view address the app uses for it" },
+          "kernel": { "type": "string", "description": "hand-coded implementation in the shell; honored only for genesis apps" }
         } } } },
 
     { "name": "type:post", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
@@ -131,6 +140,13 @@
     { "name": "type:merge", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
       "payload": { "name": "merge", "schema": {
         "type": "object", "required": ["proposals"],
-        "properties": { "proposals": { "type": "array", "items": { "type": "string", "format": "address" } } } } } }
+        "properties": { "proposals": { "type": "array", "items": { "type": "string", "format": "address" } } } } } },
+
+    { "name": "event:manifest-idm", "app": "@id:idm", "user": "@id:idm", "type": "@type:manifest",
+      "payload": { "name": "Accounts", "description": "Your account, the apps you have granted, and the apps you control.", "kernel": "idm" } },
+    { "name": "event:manifest-type-maker", "app": "@id:type-maker", "user": "@id:type-maker", "type": "@type:manifest",
+      "payload": { "name": "Type Maker", "description": "Create types and their default views; create instances of any type.", "kernel": "type-maker" } },
+    { "name": "event:manifest-app-maker", "app": "@id:app-maker", "user": "@id:app-maker", "type": "@type:manifest",
+      "payload": { "name": "App Maker", "description": "Build an app from types: views, actions and a manifest, with no code.", "kernel": "app-maker" } }
   ]
 }

@@ -155,6 +155,20 @@ CREATE TABLE custody (identity BIGINT, human_account BIGINT, role TEXT);        
 | `GET /types/:addr`, `GET /apps`, `GET /apps/:app/config` | type and app discovery |
 | `POST /admin/rebuild` | rebuild all projections from the log, return projection hash |
 
+**As implemented (P3/P4).** Every route is under `/api` (decision 183), so the CDN and the dev proxy can tell API calls from shell routes: `/api/apps/:app/events`, `/api/idm/grants`, `/api/types/…`, `/api/apps`, `/api/apps/:app/config`, `/api/admin/rebuild`. Also implemented:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/session`, `POST /api/auth/dev`, `POST /api/auth/logout` | session (signed cookie) and dev login; `POST /api/auth/oidc` is the OIDC seam, 501 for now |
+| `GET /api/items/:app/:batch/:user/:seq?score=…` | one item: lineage root, head version, score, reply count |
+| `GET /api/tree?root=…&type=…&sort=…&score=…&depth=…` | nested replies, each level sorted |
+| `GET /api/idm/apps`, `POST /api/idm/apps` | apps the session controls (custody); create an app identity owned by the IDM |
+| `GET /api/idm/grants` | the session's grants, revoked ones included |
+| `GET /api/names?ids=…`, `GET /api/identities/:id` | display names (IDM directory, app manifests, genesis), identity rows |
+| `GET /api/export` | the log as JSON lines, in replay order |
+
+`POST /api/apps/:app/events` takes `{user?, type, ref?, supersedes?, payload}`. `user` defaults to the session's account; another identity is allowed only if the IDM's custody policy lets the session control it (an app's config, decision 186). A rejection by the insert check returns 422 with the rule's reason.
+
 ## 7. Flows
 
 - **Sign-in:** OAuth/SSO into the shell → IDM finds or creates the account (`create_identity`, owner = IDM).

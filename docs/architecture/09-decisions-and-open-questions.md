@@ -188,6 +188,20 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 180 | Impl | Built-in live aggregates per (target, type and its bases): count and sum of `payload.value` | P | 04 §10 |
 | 181 | Impl | Revocation by the user's *current* owner; a transfer is valid only if initiated by the current owner | P | 03 §2 |
 | 182 | Impl | JSON payload rules enforced at write: safe integers only, no floats, NFC strings | D | 02 §4 |
+| 183 | Impl | Every API route is under `/api` (`/api/apps/:app/events`, `/api/idm/grants`, …); everything else is a client-side shell route | P | 07 §6, §10 |
+| 184 | Impl | Sessions are HMAC-signed cookies (account id + expiry): stateless servers, secret from `EV_SESSION_SECRET` | P | 03 §7 |
+| 185 | Impl | The IDM's private records (sign-in subject → account, display names, custody) live in an `IdmStore` (memory or Postgres), not in the log; display names come from it | P | 03 §2, §8 |
+| 186 | Impl | `authorize`: the session must control the user (itself, or by custody) → `user == app` needs no grant → otherwise a lazy grant from the user's owner | P | 03 §7 |
+| 187 | Impl | App config is emitted in the app's own batch (`A/b/A/s`) by the server for a custodian; no grant to the App Maker is issued (07 §7 mentions one; it isn't needed while config lives in the app's own batches) | P | 03 §8 |
+| 188 | Impl | `manifest` is a protocol type; an app's config is the newest manifest lineage it emits as itself, at its head | P | 05 §4 |
+| 189 | Impl | Genesis tool apps (IDM, Type Maker, App Maker) carry manifests whose `kernel` names their hand-coded implementation; honored only for apps the creator owns | P | 05 §6 |
+| 190 | Impl | Block whitelist v1: stack, row, grid, text, list, tree, item, event, button, form, link, view (graph reserved for the visualizer). Values: `$item`, `$props.x`, `$session.user`, literals. Templates `{field}`, `{$author}`, `{$score}`… | P | 05 §4 |
+| 191 | Impl | Config payloads: view `{name, props, root}`; action `{name, label, creates, ref, fields, fixed}`; manifest `{name, description, home, views, actions, types, open, typeViews, kernel}`; type view `{type, name, layout}` | P | 05 §4 |
+| 192 | Impl | App bundles use `@action:` / `@view:` placeholders, emitted actions → views → manifest; the App Maker keeps its form spec in `extensions["app-maker"]` of the manifest | P | 05 §6 |
+| 193 | Impl | `hot` in integers: sign · log2\|score\| · 2¹⁶ + seconds · 2¹⁶ / 13546 (reddit's formula in base 2), with the root's block time; scores sum over every version of an item | P | 05 §4 |
+| 194 | Impl | A type's default type view = its author's latest type view for any version of it; the Type Maker emits the type and an auto-generated type view together | P | 05 §4 |
+| 195 | Impl | Feeds return items inline (root, head version, score, reply count); the exact-version endpoint stays separate and immutable | P | 07 §3 |
+| 196 | Impl | The client refetches after its own writes; no push yet | P | 10 §4 |
 
 ## 2. Withdrawn or superseded (don't re-propose without a new reason)
 
@@ -257,6 +271,7 @@ Phase-0 blockers first.
 26. ~~**Derived values over private events**~~ — resolved: public aggregates over public events only (decision 135).
 27. **Post-quantum algorithm set** for launch — choose with a cryptographer; follow Ethereum's direction (`02` §9).
 28. **Collection contribution policy** — who may add to a collection (`10` §8).
+29. **Revocation vs auto-approved lazy grants.** With auto-approve, using an app again after revoking it issues a new grant, so revocation only ends the current consent. Should the IDM remember "don't grant this app again" until the user lifts it (a per-user block list), or ask on the next visit?
 
 ## 4. Parking lot (explicitly not now)
 

@@ -76,12 +76,14 @@ Iterate: restart with a richer genesis each time (`05` §6), design the expressi
 ### Phase 8 — Toward the real system (XL, post-demo)
 Merkle trees and real batching (headers, IPFS, tree-of-blobs batches, large media by hash), the erasure-safe leaf format (`02` §7), chain choice (L1 vs rollup) and integration, privacy (encrypted payloads, read grants / group keys, intranet-only batches), replay checkpoints, keys/signatures/rotation, ownership transfer UX, IDM storage + notifications + header monitoring, latest-version attestation and state trees, stable addresses, endpoints/DNS layer, demo-data import with retroactive trees, pipelines/scripting/node editor, precompiles; canonical binary encoding; performance-critical parts in Rust with horizontal scaling, sharding and Kafka/Redpanda.
 
-## 1.1 Status (2026-11-25)
+## 1.1 Status (2026-11-26)
 
-- **P1 and P2 are implemented** on branch `core-log`: core types, the log store interface with in-memory and Postgres implementations, the write path with atomic batch allocation, the block producer, the symbolic genesis file and seed, rule set 1, the replay projector with projection hash, `deployment.yml`, and a CLI.
-- **Tested:** 53 tests (contract tests for the log store, validity rules, constraints, aggregates, determinism). The Postgres store type-checks, but its tests have not run yet: they need `DATABASE_URL`.
-- **Implementation decisions** are logged in `09` as decisions 175–182.
-- **Next:** P3 (server, dev login, lazy grants), then P4 (shell, engine, makers).
+- **P1 and P2 are implemented** on branch `core-log`: core types, the log store interface with in-memory and Postgres implementations, the write path with atomic batch allocation, the block producer, the symbolic genesis file and seed, rule set 1, the replay projector with projection hash, `deployment.yml`, and a CLI. The JSON-lines export of the log, a P1 item, landed with P3.
+- **P3 is implemented, except OIDC:** the IDM (`@ev/idm`: account directory, custody, lazy auto-approved grants, revocation, app creation), `authorize(session, app, user)`, dev login with signed-cookie sessions, and the Fastify API of `07` §6 (`@ev/server`). The OIDC route is a stub that answers 501. The exit criterion is covered by tests: an app posts for a user only with a valid grant, and revoking stops later events but not earlier ones.
+- **P4 is implemented and needs a run in a browser:** the shared engine (`@ev/engine`: block whitelist, view and action config, templates, generated forms and layouts, sorts, type-view fallback, app bundles), the shell with URL routing and the block renderer (`@ev/web`), and the hand-coded Type Maker and App Maker. The App Maker builds the reddit-style app of P5 from a fixed menu, so P5's core already works through the API (an integration test builds and uses it). The UI type-checks and builds but hasn't been clicked through yet.
+- **Tested:** 83 tests. The Postgres tests (log store, IDM store) still need `DATABASE_URL`.
+- **Implementation decisions:** `09` decisions 175–196; new open question 29 (revocation vs auto-approve).
+- **Next:** click through the makers in a browser and fix what turns up, then P5's exit (the comment system built from the UI, gaps in the block set documented), OIDC when a server deployment comes up.
 
 ## 2. Dependencies
 

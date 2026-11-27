@@ -12,6 +12,8 @@ export interface ProtocolTypes {
   readonly grant: Address;
   readonly revoke: Address;
   readonly delete: Address;
+  /** App config: the head of an app's valid manifests is its current config (05 §4). */
+  readonly manifest: Address;
 }
 
 export type Constraint =

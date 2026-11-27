@@ -118,7 +118,20 @@ export class Projector {
   /** "dst|typeVersionRoot" -> live count and sum of payload.value (built-in live aggregates, 04 §10). */
   readonly aggregates = new Map<string, Aggregate>();
   readonly invalidTxs: InvalidTx[] = [];
+  /** Block number -> block time (authoritative clock, 01 §5). */
+  readonly blockTimes = new Map<bigint, string>();
+  /** Reverse edges: target -> sources, in replay order (replies, reactions). */
+  readonly children = new Map<string, string[]>();
+  /** Type version root -> lineage roots of valid events of that type or a descendant, in replay order. */
+  readonly byType = new Map<string, string[]>();
+  /** Lineage root -> every valid version after the root, in replay order (history, 07 §6 status). */
+  readonly versions = new Map<string, string[]>();
+  /** App -> lineage root of its current manifest (app_config, 07 §5). */
+  readonly appConfig = new Map<Id, string>();
 
+  private catchingUp: Promise<void> = Promise.resolve();
+  // Private index over `grants` (hashed there): "app|user" -> grant keys.
+  private readonly grantIndex = new Map<string, string[]>();
   private readonly uniqueHolders = new Map<string, string>();
   private readonly contributions = new Map<string, Contribution>();
   private readonly pendingEdges = new Map<string, string[]>();
@@ -133,10 +146,20 @@ export class Projector {
 
   // --- replay ------------------------------------------------------------
 
-  /** Applies every tx not yet applied, in replay order. Safe to call repeatedly. */
-  async catchUp(log: LogReader): Promise<void> {
+  /**
+   * Applies every tx not yet applied, in replay order. Safe to call repeatedly
+   * and concurrently: calls are serialized, so no tx is applied twice.
+   */
+  catchUp(log: LogReader): Promise<void> {
+    const run = this.catchingUp.then(() => this.catchUpNow(log));
+    this.catchingUp = run.catch(() => undefined);
+    return run;
+  }
+
+  private async catchUpNow(log: LogReader): Promise<void> {
     for await (const block of log.blocks()) {
       if (block.number < this.cursor.block) continue;
+      this.blockTimes.set(block.number, block.createdAt);
       if (block.number > this.cursor.block) this.cursor = { block: block.number, nextIdx: 0 };
       const txs = await log.txsOfBlock(block.number);
       for (const tx of txs) {
@@ -210,9 +233,24 @@ export class Projector {
 
     if (e.supersedes) {
       this.heads.set(row.lineageRoot, key);
+      const list = this.versions.get(row.lineageRoot) ?? [];
+      list.push(key);
+      this.versions.set(row.lineageRoot, list);
     }
 
     if (isTypeDefinition(e, this.ctx)) this.registerType(e, row);
+
+    if (!e.supersedes) {
+      for (const t of this.typeLineageKeys(e.typeRef)) {
+        const list = this.byType.get(t) ?? [];
+        list.push(key);
+        this.byType.set(t, list);
+      }
+      // App config: a manifest the app emits as itself in its own batch (03 §8). The newest lineage wins.
+      if (e.address.user === e.address.app && this.ctx.isA(e.typeRef, P.manifest)) {
+        this.appConfig.set(e.address.app, key);
+      }
+    }
 
     if (!e.supersedes) {
       if (this.ctx.isA(e.typeRef, P.grant)) {
@@ -225,6 +263,8 @@ export class Projector {
           issuedBlock: row.position.block,
           revokedBlock: null,
         });
+        const pair = `${p.app}|${p.user}`;
+        this.grantIndex.set(pair, [...(this.grantIndex.get(pair) ?? []), key]);
       } else if (this.ctx.isA(e.typeRef, P.revoke)) {
         const g = this.grants.get(addressKey(e.ref!));
         if (g && g.revokedBlock === null) g.revokedBlock = row.position.block;
@@ -356,6 +396,9 @@ export class Projector {
   // --- edges ---------------------------------------------------------------
 
   private addEdge(src: string, dst: string, block: bigint): void {
+    const kids = this.children.get(dst) ?? [];
+    kids.push(src);
+    this.children.set(dst, kids);
     const target = this.events.get(dst);
     if (target) {
       const tb = target.position.block;
@@ -411,6 +454,45 @@ export class Projector {
     return this.aggregates.get(`${addressKey(target)}|${addressKey(t.versionRoot)}`) ?? { count: 0, sum: 0 };
   }
 
+  /** Head (latest valid version) of the lineage `key` belongs to. */
+  headOf(key: string): string {
+    const row = this.events.get(key);
+    if (!row) return key;
+    return this.heads.get(row.lineageRoot) ?? row.lineageRoot;
+  }
+
+  /** True if the lineage `key` belongs to has a valid delete. */
+  isDeleted(key: string): boolean {
+    const row = this.events.get(key);
+    return row !== undefined && this.deleted.has(row.lineageRoot);
+  }
+
+  /** The app's current manifest (head version), unless it was deleted. */
+  manifestOf(app: Id): EventRow | undefined {
+    const root = this.appConfig.get(app);
+    if (root === undefined || this.deleted.has(root)) return undefined;
+    return this.events.get(this.headOf(root));
+  }
+
+  /** Valid, not deleted lineage roots of `type` or a descendant, in replay order. */
+  instancesOf(type: Address): string[] {
+    const t = this.types.get(addressKey(type));
+    if (!t) return [];
+    return (this.byType.get(addressKey(t.versionRoot)) ?? []).filter((k) => !this.deleted.has(k));
+  }
+
+  /** Every version of a lineage, oldest first. */
+  history(key: string): string[] {
+    const row = this.events.get(key);
+    if (!row) return [];
+    return [row.lineageRoot, ...(this.versions.get(row.lineageRoot) ?? [])];
+  }
+
+  /** Is the grant valid now (issued, not revoked)? Grants are judged per event as of its position. */
+  grantsFor(app: Id, user: Id): GrantRow[] {
+    return (this.grantIndex.get(`${app}|${user}`) ?? []).map((k) => this.grants.get(k)!).filter((g) => g.revokedBlock === null);
+  }
+
   /** Hash of every derived table. Same log ⇒ same hash, on any machine. */
   hash(): string {
     const events = new Map(
@@ -435,6 +517,11 @@ export class Projector {
         edges: this.edges,
         aggregates: this.aggregates,
         invalidTxs: this.invalidTxs,
+        blockTimes: this.blockTimes,
+        children: this.children,
+        byType: this.byType,
+        versions: this.versions,
+        appConfig: this.appConfig,
       }),
     );
   }

@@ -1,19 +1,65 @@
 
+what does "a counter keyed by (target, type)" mean - is the target the specific event? and why is that part of the key
+
+regarding 2. "A revocation must come from the user's current owner" - if the IDM is id=1, and the user id is 2, then I was thinking that when user 2 is logged into some app, the grant event would be 1/.../2/... so the event is initiated by the user, but is published by the IDM with id 1 which owns id 2, but still the grant event is authored by id 2. Or did you mean that the id of the event would be 1/.../1/...? Which of the 2 do you think is best? I think it's cleaner for it to be 1/.../2/... even though currently in the demos the grant is issued automatically upon the first time an app is opened. wdyt? should we change this? It seems more proper for grants to be tied by the user in the URI.
+
+regarding Question 29 - agreed - keep the code, and simply re-authorize automatically when the user opens the app again
+
+if we'll be hardcoding the first apps in the shell - why should we still Keep the Type Maker in-system? pros/cons?
+
+what exactly is a manifest's kernel field? can you show example? and what would be a kernel app?
+
+what is the block engine and what would it mean to park it - it sounds like related to producing blocks - how's that related to the definition of apps?
+
+I propose a flag for whatever is parked - not separate branches.
+I agree about hardcoding the reddit app and maybe also the app maker? and why not even the type maker as I asked earlier? wdyt?
+
+I just committed the current state to git.
 
 
 
 
 
+
+
+
+
+you should read all of the spec pages for atproto and compare with what we're doing here
+https://atproto.com/specs/atp
+
+
+
+https://atproto.com/specs/data-model
+DRISL (which is successor to DAG-CBOR)
+https://dasl.ing/drisl.html
+dag-cbor vs DRISL
+    DRISL (Deterministic Representation for Interoperable Structures and Links) is a deterministic CBOR profile under the DASL (Data Addressed Structures and Links) specification that serves as the successor to DAG-CBOR in ecosystems like the AT Protocol (Bluesky). Both are constrained, deterministic subsets of CBOR that enforce canonical byte representations so identical data produces identical hashes/CIDs, and both use CBOR Tag 42 for content-addressed links.
+    == Key Differences & Relationship
+    • Origin & Ecosystem: DAG-CBOR originates from IPLD as a codec for the IPLD Data Model. DRISL comes from DASL—a web-friendly, interoperable subset of IPFS/IPLD primitives—and is used by the AT Protocol as the successor to DAG-CBOR.
+    • Specification & Stability: DRISL is designed as a strict, well-defined profile anchored to core CBOR features with explicit normalization and decoding constraints to avoid ambiguities across implementations and libraries.
+    • Shared Foundations: Both require deterministic encoding (such as shortest integer encoding, definite lengths, and sorted map keys), restrict map keys to strings, and rely on Tag 42 for compact binary CID links while remaining readable as standard CBOR.
+
+
+
+
+
+pnpm start demo: seeds genesis, writes a small reddit-style scenario (users, grants, a post, a comment, two votes), shows the server rejecting an edit by someone who isn't the author, and prints the projection hash.
+pnpm start symbols: prints the address every genesis type received.
+pnpm test and pnpm typecheck run everything.
+
+run pnpm dev
+http://localhost:5173
 
 
 
 - Node.js (the current LTS version), which includes npm: winget install OpenJS.NodeJS.LTS
 - pnpm: npm install -g pnpm. Newer Node versions no longer bundle Corepack, so install pnpm directly.
-- PostgreSQL 16 or newer: the EDB installer from postgresql.org, or winget search postgresql to find the current package. It includes psql.
 
 
 
 
+
+should this be a monorepo or should I split it up?
 
 
 
@@ -21,7 +67,11 @@
 can a type inherit from the meta type?
 
 
+Names?
 
+Js lib for ui widgets?
+
+Attest, credentials, revocation
 
 
 

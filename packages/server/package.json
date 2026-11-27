@@ -1,0 +1,30 @@
+{
+  "name": "@ev/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "HTTP API (07 §6): sessions and dev login, authorize(), event reads and writes, queries, IDM endpoints. Serves the built web client.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@ev/config": "workspace:*",
+    "@ev/core": "workspace:*",
+    "@ev/engine": "workspace:*",
+    "@ev/genesis": "workspace:*",
+    "@ev/idm": "workspace:*",
+    "@ev/log": "workspace:*",
+    "@ev/log-pg": "workspace:*",
+    "@ev/node": "workspace:*",
+    "@ev/projector": "workspace:*",
+    "@ev/rules": "workspace:*",
+    "@fastify/static": "^10.1.12",
+    "fastify": "^5.12.8"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}

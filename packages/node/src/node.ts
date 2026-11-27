@@ -26,7 +26,16 @@ export interface EvNode {
   readonly seeded: boolean;
   /** Applies new log entries to the projection. */
   sync(): Promise<void>;
+  /** Replays the whole log into a fresh projector (07 §6 rebuild) and compares it with the live one. */
+  rebuild(): Promise<{ readonly hash: string; readonly live: string; readonly match: boolean }>;
   stop(): void;
+}
+
+/** The insert-time check refused an event the projection would mark invalid (04 §8). */
+export class RejectedError extends Error {
+  constructor(readonly address: string, readonly reason: string) {
+    super(`rejected ${address}: ${reason}`);
+  }
 }
 
 export async function startNode(options: NodeOptions): Promise<EvNode> {
@@ -43,7 +52,7 @@ export async function startNode(options: NodeOptions): Promise<EvNode> {
     insertCheck: async (e) => {
       await projector.catchUp(store); // reads committed entries only, so it can't see this transaction
       const v = projector.validateCandidate(e);
-      if (!v.valid) throw new Error(`rejected ${formatAddress(e.address)}: ${v.reason}`);
+      if (!v.valid) throw new RejectedError(formatAddress(e.address), v.reason);
     },
   });
 
@@ -64,6 +73,14 @@ export async function startNode(options: NodeOptions): Promise<EvNode> {
     config, store, writer, projector, plan, blocks,
     seeded: empty,
     sync: () => projector.catchUp(store),
+    async rebuild() {
+      await projector.catchUp(store);
+      const fresh = new Projector({ protocol: plan.protocol });
+      await fresh.catchUp(store);
+      const hash = fresh.hash();
+      const live = projector.hash();
+      return { hash, live, match: hash === live };
+    },
     stop: () => blocks.stop(),
   };
 }

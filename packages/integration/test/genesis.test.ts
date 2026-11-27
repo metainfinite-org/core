@@ -32,7 +32,12 @@ describe("genesis", () => {
     expect(invalid).toEqual([]);
     expect(kit.proj.invalidTxs).toEqual([]);
     expect(kit.proj.events.size).toBe(kit.plan.events.length);
-    expect(kit.proj.types.size).toBe(kit.plan.events.length); // genesis holds only types
+    const typeEvents = kit.plan.events.filter((e) => e.name?.startsWith("type:"));
+    expect(kit.proj.types.size).toBe(typeEvents.length);
+    // The tool apps carry their own manifests (app config, 03 §8).
+    for (const tool of ["idm", "type-maker", "app-maker"]) {
+      expect(kit.proj.manifestOf(kit.id(tool))).toBeDefined();
+    }
     expect(kit.proj.identities.get(kit.id("idm"))!.owner).toBe(kit.id("creator"));
   });
 

@@ -11,6 +11,9 @@
     "@ev/projector": "workspace:*",
     "@ev/genesis": "workspace:*",
     "@ev/config": "workspace:*",
-    "@ev/node": "workspace:*"
+    "@ev/node": "workspace:*",
+    "@ev/idm": "workspace:*",
+    "@ev/engine": "workspace:*",
+    "@ev/server": "workspace:*"
   }
 }

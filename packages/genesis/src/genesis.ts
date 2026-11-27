@@ -19,7 +19,7 @@ export interface GenesisFile {
   readonly format: 1;
   readonly name: string;
   readonly time: string;
-  readonly protocol: { readonly meta: string; readonly grant: string; readonly revoke: string; readonly delete: string };
+  readonly protocol: { readonly meta: string; readonly grant: string; readonly revoke: string; readonly delete: string; readonly manifest: string };
   readonly identities: readonly { readonly name: string; readonly initiator: string | null; readonly message?: string }[];
   readonly events: readonly {
     readonly name?: string;
@@ -54,7 +54,7 @@ export interface GenesisPlan {
   readonly events: readonly PlannedEvent[];
   /** Symbol table: "@id:creator" -> "1", "@type:post" -> "1/23/1/1". */
   readonly symbols: ReadonlyMap<string, string>;
-  readonly protocol: { readonly meta: Address; readonly grant: Address; readonly revoke: Address; readonly delete: Address };
+  readonly protocol: { readonly meta: Address; readonly grant: Address; readonly revoke: Address; readonly delete: Address; readonly manifest: Address };
 }
 
 const SYMBOL_RE = /^@(id|type|event):([a-z0-9][a-z0-9._-]*)$/;
@@ -127,6 +127,7 @@ export function compileGenesis(file: GenesisFile, firstIdentity: Id): GenesisPla
       grant: resolveAddress(file.protocol.grant, symbols),
       revoke: resolveAddress(file.protocol.revoke, symbols),
       delete: resolveAddress(file.protocol.delete, symbols),
+      manifest: resolveAddress(file.protocol.manifest, symbols),
     },
   };
 }
