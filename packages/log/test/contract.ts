@@ -99,5 +99,26 @@ export function logStoreContract(name: string, makeStore: () => Promise<LogStore
       expect((await store.txsOfBlock(1n)).length).toBe(1);
       expect((await store.txsOfBlock(2n)).map((t) => t.idx)).toEqual([0]);
     });
+
+    it("closing a block opens no block until the next write", async () => {
+      const { store, writer } = await setup();
+      const app = await writer.createIdentity({ initiator: 0n });
+      await writer.closeBlock();
+      await writer.closeBlock(); // idle ticks: still one block
+      const count = async () => { let n = 0; for await (const _ of store.blocks()) n++; return n; };
+      expect(await count()).toBe(1);
+      await writer.emitEvent(app, { user: app, typeRef: T, payload: null });
+      expect(await count()).toBe(2);
+      expect((await store.txsOfBlock(2n)).map((t) => t.type)).toEqual(["publish_batch"]);
+    });
+
+    it("a fresh writer never appends to an existing block", async () => {
+      const { store, writer } = await setup();
+      const app = await writer.createIdentity({ initiator: 0n });
+      const restarted = new LogWriter(store, { firstIdentity: 1000n, clock: () => "2026-02-01T00:00:00.000Z" });
+      await restarted.emitEvent(app, { user: app, typeRef: T, payload: null });
+      expect((await store.txsOfBlock(1n)).length).toBe(1);
+      expect((await store.txsOfBlock(2n)).length).toBe(1);
+    });
   });
 }

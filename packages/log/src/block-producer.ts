@@ -1,6 +1,9 @@
 import type { LogWriter } from "./writer";
 
-/** Seals the open block on a timer (07 §2). The interval comes from deployment.yml. */
+/**
+ * Closes the open block on a timer (07 §2); the interval comes from deployment.yml.
+ * Blocks open lazily on the next write, so an idle node adds no empty blocks.
+ */
 export class BlockProducer {
   private timer: ReturnType<typeof setInterval> | null = null;
 
@@ -13,7 +16,7 @@ export class BlockProducer {
   start(): void {
     if (this.timer) return;
     this.timer = setInterval(() => {
-      this.writer.sealBlock().catch(this.onError);
+      this.writer.closeBlock().catch(this.onError);
     }, this.intervalMs);
   }
 

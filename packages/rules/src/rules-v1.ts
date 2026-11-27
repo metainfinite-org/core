@@ -44,6 +44,9 @@ export function isTypeDefinition(e: EventRecord, ctx: RuleContext): boolean {
 function checkAuth(e: EventRecord, ctx: RuleContext): Verdict {
   const { app, user } = e.address;
   if (user === app) return VALID; // an app speaking for itself in its own batch
+  // The user's owner (its IDM) publishing for it in the owner's batch (03 §5): the
+  // owner could issue itself a grant anyway, so this adds no power.
+  if (ctx.ownerOf(user) === app) return VALID;
   if (e.signature && !e.auth) return invalid("signatures_unsupported"); // no keys in the demo
   if (!e.auth) return invalid("no_auth");
   const g = ctx.grantInfo(e.auth);
@@ -171,6 +174,26 @@ export function createRulesV1(fromBlock = 1n): RuleSet {
         constraints = t.constraints;
       }
 
+      // --- consent: grants and revocations (03 §4, §5) --------------------
+      // Authored by the user whose consent it is; published in the user's own
+      // batch or in its current owner's batch, never under another grant.
+      const P = ctx.protocol;
+      if (!isMetaItself && !e.supersedes) {
+        if (ctx.isA(e.typeRef, P.grant)) {
+          const gApp = idField(e.payload, "app");
+          const gUser = idField(e.payload, "user");
+          if (gApp === undefined || gUser === undefined) return invalid("grant_payload");
+          if (!ctx.identityExists(gApp) || !ctx.identityExists(gUser)) return invalid("grant_unknown_identity");
+          if (user !== gUser) return invalid("grant_not_by_user");
+          if (app !== user && ctx.ownerOf(user) !== app) return invalid("grant_not_by_owner");
+        } else if (ctx.isA(e.typeRef, P.revoke)) {
+          const g = e.ref ? ctx.grantInfo(e.ref) : undefined;
+          if (!g) return invalid("revoke_target_not_a_grant");
+          if (user !== g.user) return invalid("revoke_not_by_user");
+          if (app !== user && ctx.ownerOf(user) !== app) return invalid("revoke_not_by_owner");
+        }
+      }
+
       // --- auth -----------------------------------------------------------
       const auth = checkAuth(e, ctx);
       if (!auth.valid) return auth;
@@ -201,19 +224,8 @@ export function createRulesV1(fromBlock = 1n): RuleSet {
       }
 
       // --- protocol types -------------------------------------------------
-      const P = ctx.protocol;
       if (!isMetaItself && !e.supersedes) {
-        if (ctx.isA(e.typeRef, P.grant)) {
-          const gApp = idField(e.payload, "app");
-          const gUser = idField(e.payload, "user");
-          if (gApp === undefined || gUser === undefined) return invalid("grant_payload");
-          if (!ctx.identityExists(gApp) || !ctx.identityExists(gUser)) return invalid("grant_unknown_identity");
-          if (ctx.ownerOf(gUser) !== user) return invalid("grant_not_by_owner");
-        } else if (ctx.isA(e.typeRef, P.revoke)) {
-          const g = e.ref ? ctx.grantInfo(e.ref) : undefined;
-          if (!g) return invalid("revoke_target_not_a_grant");
-          if (ctx.ownerOf(g.user) !== user) return invalid("revoke_not_by_owner");
-        } else if (ctx.isA(e.typeRef, P.delete)) {
+        if (ctx.isA(e.typeRef, P.delete)) {
           const target = e.ref ? ctx.eventInfo(e.ref) : undefined;
           if (!target) return invalid("delete_target_missing");
           if (target.event.address.user !== user) return invalid("delete_by_non_author");

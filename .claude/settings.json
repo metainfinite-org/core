@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "if command -v node >/dev/null 2>&1; then N=node; else N='/c/Program Files/nodejs/node.exe'; fi; \"$N\" \"$CLAUDE_PROJECT_DIR/scripts/conversation-log.mjs\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

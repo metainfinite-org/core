@@ -44,8 +44,8 @@ An app is an identity, so the same mechanism applies: the app's on-chain owner i
 
 ## 4. Grants (auth events)
 
-- A grant is an **off-chain event emitted by the user's IDM** (author = the IDM, in the IDM's own batch): "app X can post on behalf of user Y from now on". **[Later]** a sovereign user's key can issue grants too.
-- **Revocation** is a revoke event by the owner referencing the grant.
+- A grant is an **off-chain event authored by the user and published by their IDM**: address `IDM/b/U/s` (the batch says who published it, the author says whose consent it is). It reads "app X can post on behalf of user Y from now on". A sovereign user publishes their own grants as `U/b/U/s`. A grant is never published under another grant, so an app can't pass a user's consent on to a second app. **[Later]** a sovereign user's key can sign it as well.
+- **Revocation** is a revoke event referencing the grant, under the same rules: authored by the grant's user, published by the user or their current owner.
 - **Lazy issuance:** when a user opens an app they haven't authorized, their IDM issues the grant. Demo: auto-approved and published immediately in its own batch. (Pre-granting every user for every new app was rejected: N events per app, and later users would still have none.)
 - **An event's `auth` points at one specific grant**, not "any grant for (A, U)". So one app can hold several grants with different scopes and revoke each separately → **compartmentalization**: different services/servers of the same app get different scopes; if one is compromised, revoke just its grant. Tiers of events by sensitivity fit here too.
 - **Grant type evolution** (by supersession): scopes / permissions, expiry (auto-expire), time-boxed grants, **[P]** delegation chains (a grant derived from a parent grant with a smaller scope, revocable all at once by revoking the root). None changes the envelope.
@@ -65,6 +65,8 @@ Evaluated by the projection for event `e` emitted through app `A` by user `U`, *
 valid_auth(e, pos):
   if e.user == e.app:                        # app speaks for itself in its own batch
       return true                            # (in the final system: vouched by the app's signed batch tx)
+  if e.app == owner_of(U, pos):              # the custodian publishing for U in its own batch
+      return true                            # (no new power: it could grant itself anyway)
   if e.signature is not null and e.auth is null:
       return verify(key_of(U, pos), canonical_bytes(e))   # covers the address
   if e.auth is not null:
@@ -73,7 +75,8 @@ valid_auth(e, pos):
          and is_grant_type(g.type)             # grant type or a descendant
          and g.payload.app == e.app
          and g.payload.user == U
-         and g.author == owner_of(U, at g.pos)  # or U's own key (later)
+         and g.author == U
+         and g.app in {U, owner_of(U, at g.pos)}  # published by U or its owner
          and not revoked(g, before pos)        # revocation wins ties in a block
          and scope_allows(g, e)                # later: scopes, expiry
          and (g grants a key ⇒ verify(that key, e))

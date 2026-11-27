@@ -50,11 +50,37 @@ describe("auth (03 §5)", () => {
     const kit = await boot();
     const app = await kit.newApp();
     const alice = await kit.newUser();
-    // The app tries to grant itself access to alice.
-    const fake = await kit.emit(app, { user: app, type: "grant", payload: { app: app.toString(), user: alice.toString() } });
-    expect(await kit.verdict(fake)).toBe("grant_not_by_owner");
+    const grantFor = (u: bigint) => ({ app: app.toString(), user: u.toString() });
+    // The app tries to grant itself access to alice, as itself or as her.
+    const fake = await kit.emit(app, { user: app, type: "grant", payload: grantFor(alice) });
+    expect(await kit.verdict(fake)).toBe("grant_not_by_user");
+    const forged = await kit.emit(app, { user: alice, type: "grant", payload: grantFor(alice) });
+    expect(await kit.verdict(forged)).toBe("grant_not_by_owner");
     const e = await kit.emit(app, { user: alice, type: "post", auth: fake.address, payload: { title: "x" } });
     expect(await kit.verdict(e)).toBe("auth_not_a_valid_grant");
+  });
+
+  it("grants are authored by the user and published by its owner or itself", async () => {
+    const kit = await boot();
+    const app = await kit.newApp();
+    const alice = await kit.newUser();
+    const g = await kit.grant(app, alice);
+    expect(g.address.app).toBe(kit.id("idm"));
+    expect(g.address.user).toBe(alice);
+    expect(await kit.verdict(g)).toBe("valid");
+    // A grant can't be published under another grant (an app granting a second app).
+    const other = await kit.newApp();
+    const relayed = await kit.emit(app, {
+      user: alice, type: "grant", auth: g.address, payload: { app: other.toString(), user: alice.toString() },
+    });
+    expect(await kit.verdict(relayed)).toBe("grant_not_by_owner");
+    // Revocation: the same author and publisher rules.
+    const r = await kit.revoke(g);
+    expect(r.address.user).toBe(alice);
+    expect(await kit.verdict(r)).toBe("valid");
+    const g2 = await kit.grant(app, alice);
+    const badRevoke = await kit.emit(app, { user: app, type: "revoke", ref: g2.address, payload: {} });
+    expect(await kit.verdict(badRevoke)).toBe("revoke_not_by_user");
   });
 
   it("follows ownership transfers: the new owner issues grants", async () => {
@@ -65,7 +91,7 @@ describe("auth (03 §5)", () => {
     await kit.writer.transferOwnership(kit.id("idm"), alice, idm2);
     const oldGrant = await kit.grant(app, alice); // the old IDM no longer owns alice
     expect(await kit.verdict(oldGrant)).toBe("grant_not_by_owner");
-    const g = await kit.emit(idm2, { user: idm2, type: "grant", payload: { app: app.toString(), user: alice.toString() } });
+    const g = await kit.emit(idm2, { user: alice, type: "grant", payload: { app: app.toString(), user: alice.toString() } });
     expect(await kit.verdict(g)).toBe("valid");
   });
 

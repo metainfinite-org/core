@@ -202,6 +202,9 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 194 | Impl | A type's default type view = its author's latest type view for any version of it; the Type Maker emits the type and an auto-generated type view together | P | 05 §4 |
 | 195 | Impl | Feeds return items inline (root, head version, score, reply count); the exact-version endpoint stays separate and immutable | P | 07 §3 |
 | 196 | Impl | The client refetches after its own writes; no push yet | P | 10 §4 |
+| 197 | Impl | Revocation ends the current consent only: with auto-approved grants, opening the app again re-grants automatically. A per-user block list or a consent prompt comes with real consent UI **[Later]** | D | 03 §5 |
+| 198 | Impl | No empty blocks: the block producer's tick only closes the open block, and the next write opens a new block stamped with the time of that write. A restarted node always opens a fresh block. Block numbers are therefore not a clock | D | 07 §2 |
+| 199 | Auth | A grant or revoke is authored by the user whose consent it is and published in the user's own batch or its current owner's (`IDM/b/U/s`), never under another grant. An identity's owner may publish for it in the owner's batch without a grant | D | 03 §4, §5 |
 
 ## 2. Withdrawn or superseded (don't re-propose without a new reason)
 
@@ -271,7 +274,7 @@ Phase-0 blockers first.
 26. ~~**Derived values over private events**~~ — resolved: public aggregates over public events only (decision 135).
 27. **Post-quantum algorithm set** for launch — choose with a cryptographer; follow Ethereum's direction (`02` §9).
 28. **Collection contribution policy** — who may add to a collection (`10` §8).
-29. **Revocation vs auto-approved lazy grants.** With auto-approve, using an app again after revoking it issues a new grant, so revocation only ends the current consent. Should the IDM remember "don't grant this app again" until the user lifts it (a per-user block list), or ask on the next visit?
+29. ~~**Revocation vs auto-approved lazy grants.**~~ Settled in decision 197: in the demos, using the app again simply re-grants automatically.
 
 ## 4. Parking lot (explicitly not now)
 

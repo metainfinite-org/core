@@ -15,7 +15,7 @@ Run from the repo root (pnpm workspaces):
 - `pnpm typecheck`: `tsc --noEmit` over all packages (TypeScript 7).
 - `pnpm dev`: the API server (port 8787) plus the Vite dev server for the shell; open http://localhost:5173. `pnpm build` builds the shell into `packages/web/dist`, and `pnpm serve` runs only the API server, which also serves that build. Env: `PORT`, `HOST`, `EV_SESSION_SECRET` (random per boot if unset), `EV_LOG=1`.
 - `pnpm start`: boots a node from `deployment.yml` and prints genesis info and the projection hash. `pnpm start demo` writes a small reddit-style scenario; `pnpm start symbols` prints the genesis symbol table.
-- **Postgres:** set `storage: postgres` in `deployment.yml` and `DATABASE_URL`. The Postgres tests run only when `DATABASE_URL` is set, and they **truncate** the log and IDM tables, so point them at a disposable database.
+- **Postgres:** the app uses `DATABASE_URL` when `deployment.yml` has `storage: postgres`. The Postgres tests use a separate `EV_TEST_DATABASE_URL` and run only when it is set; they **truncate** the log and IDM tables, so it must point at a disposable database, never the one in `DATABASE_URL`.
 
 Packages export their TypeScript sources directly (`"exports": "./src/index.ts"`); there is no build step except for the web client (Vite). Scripts run through `tsx`. Code that the browser loads imports `@ev/core/browser` and `@ev/rules/schema`, which have no `node:` imports.
 
@@ -44,6 +44,7 @@ How the pieces fit: the writer appends to the log through a `LogStore` and never
 ## Layout of the docs
 
 - [docs/architecture/](docs/architecture/): the architecture set, files `00-README.md` to `10-in-system-social-mechanics.md`. It was written from a long design conversation.
+- [docs/conversation/log.md](docs/conversation/log.md): the append-only log of the conversation with Claude Code, written by a Stop hook ([scripts/conversation-log.mjs](scripts/conversation-log.mjs), [.claude/settings.json](.claude/settings.json)). **Don't read it unless the user explicitly asks**, and never edit it by hand. To backfill from transcripts: `node scripts/conversation-log.mjs --all <dir with session .jsonl files>`.
 - [my_notes.txt](my_notes.txt): the user's raw notes and requirements. Some are in Bulgarian (transliterated). Ideas here that are not invalidated elsewhere are meant to end up in the architecture docs.
 
 ## How to work with the docs

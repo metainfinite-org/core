@@ -80,8 +80,9 @@ export class Idm {
       if (usable) return usable.address;
       if (!this.owns(user)) throw new IdmError(`identity ${user} is not owned by this IDM, so it can't grant for it`, 403);
       if (!this.o.projector.identities.has(app)) throw new IdmError(`app ${app} does not exist`, 404);
+      // Authored by the user (it is their consent), published in the IDM's batch: IDM/b/user/s.
       const g = await this.o.writer.emitEvent(this.id, {
-        user: this.id,
+        user,
         typeRef: this.o.grantType,
         payload: { app: app.toString(), user: user.toString() },
       });
@@ -111,7 +112,7 @@ export class Idm {
     if (!(await this.controls(requester, g.user))) throw new IdmError("only the grant's user can revoke it", 403);
     if (g.revokedBlock !== null) throw new IdmError("already revoked");
     if (!this.owns(g.user)) throw new IdmError("this IDM no longer owns the user", 403);
-    const r = await this.o.writer.emitEvent(this.id, { user: this.id, typeRef: this.o.revokeType, ref: grant, payload: {} });
+    const r = await this.o.writer.emitEvent(this.id, { user: g.user, typeRef: this.o.revokeType, ref: grant, payload: {} });
     await this.o.sync();
     return r.address;
   }

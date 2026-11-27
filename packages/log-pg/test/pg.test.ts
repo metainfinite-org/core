@@ -1,5 +1,5 @@
-// Runs only when DATABASE_URL points at a disposable Postgres database:
-//   DATABASE_URL=postgres://user:pass@localhost:5432/ev_test pnpm test
+// Runs only when EV_TEST_DATABASE_URL points at a disposable Postgres database:
+//   EV_TEST_DATABASE_URL=postgres://user:pass@localhost:5432/ev_test pnpm test
 // WARNING: the tests TRUNCATE the log tables.
 
 import { afterAll, describe, expect, it } from "vitest";
@@ -9,7 +9,10 @@ import { PgLogStore } from "@ev/log-pg";
 import { Projector } from "@ev/projector";
 import { logStoreContract } from "../../log/test/contract";
 
-const url = process.env.DATABASE_URL;
+const url = process.env.EV_TEST_DATABASE_URL;
+if (url && url === process.env.DATABASE_URL) {
+  throw new Error("EV_TEST_DATABASE_URL equals DATABASE_URL: the tests truncate tables, so use a separate database");
+}
 
 if (url) {
   const store = new PgLogStore({ connectionString: url });
@@ -41,7 +44,7 @@ if (url) {
     });
   });
 } else {
-  describe.skip("postgres (set DATABASE_URL to run)", () => {
+  describe.skip("postgres (set EV_TEST_DATABASE_URL to run)", () => {
     it("skipped", () => undefined);
   });
 }

@@ -1,26 +1,50 @@
 
-what does "a counter keyed by (target, type)" mean - is the target the specific event? and why is that part of the key
+RESTART VSCODE !!!
 
-regarding 2. "A revocation must come from the user's current owner" - if the IDM is id=1, and the user id is 2, then I was thinking that when user 2 is logged into some app, the grant event would be 1/.../2/... so the event is initiated by the user, but is published by the IDM with id 1 which owns id 2, but still the grant event is authored by id 2. Or did you mean that the id of the event would be 1/.../1/...? Which of the 2 do you think is best? I think it's cleaner for it to be 1/.../2/... even though currently in the demos the grant is issued automatically upon the first time an app is opened. wdyt? should we change this? It seems more proper for grants to be tied by the user in the URI.
 
-regarding Question 29 - agreed - keep the code, and simply re-authorize automatically when the user opens the app again
 
-if we'll be hardcoding the first apps in the shell - why should we still Keep the Type Maker in-system? pros/cons?
+when you say "Grants can't be relayed" - maybe that should be still possible in the future for some relayable type of grant? I guess if the grant type is extensible it should be doable in the future without breaking anything from the past so we don't have to think about it from now
 
-what exactly is a manifest's kernel field? can you show example? and what would be a kernel app?
+I guess a good first candidate for non-deletable events should be all types, since the moment a type is created someone could have already used it to create an event. What did we decide about non-deletion and enforcing it - did we leave it just as a hint in the extensions of types?
 
-what is the block engine and what would it mean to park it - it sounds like related to producing blocks - how's that related to the definition of apps?
+regarding "The "once" rule already exists as an inherited constraint on reaction" - how could we accomodate the clap reaction in medium.com where someone could clap up to 50 times - could that be a subtype of reaction which simply overrides the "once" property? and maybe also adding a max_number field? or should we have a base type reaction from which one_time reaction and multiple_times_reaction inherit from? don't do it now - I'm just asking how it could be done in the future - right now we won't be making any multiple_times_reaction reactions.
+actually I just saw that you're asking about precisely that - about repeatable reactions - what do you think about a repeatable reaction simply inheriting from apply_once_reaction and overriding that property? then there are less types - otherwise we have to think harder in advance about possible future type hierarchies - we should keep things flexible, no?
 
-I propose a flag for whatever is parked - not separate branches.
-I agree about hardcoding the reddit app and maybe also the app maker? and why not even the type maker as I asked earlier? wdyt?
+is the scope: "family" stuff part of constraints?
 
-I just committed the current state to git.
 
+regarding JSON Merge Patch - is that only for text-based diffs? what about the future when we use something like CBOR - is there a way to diff those? and shouldn't the diff-ing thing be replaceable and events should be able to use different diff formats/tools?
 
 
 
 
 
+
+
+
+
+actually the .md files that were imported in the beginning of this repository were generated from a claude chat with sonnet 5.5 from the claude app - you can find the manifest.json and .zip files in this directory:
+D:\stuff\claude_chat
+can you get the convo form there and prepend it to the log in this repo in the same formatting?
+you say to keep it verbatim in a separate file - why separate? Is there is a good reason (like not being able to fully match the format of the rest of the log)?
+Just make sure to not add any personal details in the log like my email or whatnot - just the chat that contributed from the start for this repo.
+Also maybe in the hook that appends to the file there should be a check if I'm leaking anything sensitive from the convo like specifics about other people or some password or whatever - and either prompt me, or simply obfuscate it automatically from the log?
+leave the append-only as a convention - no need to strictly enforce it.
+
+I also committed what's been done so far to see the next set of changes separately.
+
+
+
+
+
+
+
+
+
+
+
+
+psql -U postgres
 
 
 
@@ -54,8 +78,6 @@ http://localhost:5173
 
 - Node.js (the current LTS version), which includes npm: winget install OpenJS.NodeJS.LTS
 - pnpm: npm install -g pnpm. Newer Node versions no longer bundle Corepack, so install pnpm directly.
-
-
 
 
 

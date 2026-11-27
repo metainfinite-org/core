@@ -45,8 +45,9 @@ export async function boot(firstIdentity = 1n): Promise<Kit> {
     newUser: () => writer.createIdentity({ initiator: idm }),
     newApp: () => writer.createIdentity({ initiator: creator }),
     grant: (app, user) =>
-      writer.emitEvent(idm, { user: idm, typeRef: type("grant"), payload: { app: app.toString(), user: user.toString() } }),
-    revoke: (g) => writer.emitEvent(idm, { user: idm, typeRef: type("revoke"), ref: g.address, payload: {} }),
+      writer.emitEvent(idm, { user, typeRef: type("grant"), payload: { app: app.toString(), user: user.toString() } }),
+    revoke: (g) =>
+      writer.emitEvent(idm, { user: g.address.user, typeRef: type("revoke"), ref: g.address, payload: {} }),
     emit: (app, input) => {
       const { type: t, ...rest } = input;
       return writer.emitEvent(app, { ...rest, typeRef: typeof t === "string" ? type(t) : t });

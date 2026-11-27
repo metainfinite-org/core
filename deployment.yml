@@ -16,4 +16,7 @@ block_interval_ms: 1000
 sign_in: dev
 
 # "memory" (nothing persists) or "postgres" (needs DATABASE_URL).
-storage: memory
+storage: postgres
+
+#DATABASE_URL: ev_dev
+

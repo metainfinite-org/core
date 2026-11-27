@@ -259,7 +259,7 @@ export class Projector {
           address: e.address,
           app: BigInt(p.app),
           user: BigInt(p.user),
-          issuer: e.address.user,
+          issuer: e.address.app, // the publisher: the user itself or its owner at the time
           issuedBlock: row.position.block,
           revokedBlock: null,
         });

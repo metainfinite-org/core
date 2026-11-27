@@ -47,6 +47,12 @@ export interface WriterOptions {
 export class WriteError extends Error {}
 
 export class LogWriter {
+  /**
+   * The open block takes no more txs; the next write opens a fresh block (stamped
+   * then). Starts true so that a restarted node never appends to an old block.
+   */
+  private closed = true;
+
   constructor(
     private readonly store: LogStore,
     private readonly options: WriterOptions,
@@ -56,7 +62,19 @@ export class LogWriter {
   async sealBlock(createdAt?: string): Promise<bigint> {
     return this.store.transaction(async (t) => {
       const b = await t.startBlock(createdAt ?? this.options.clock());
+      this.closed = false;
       return b.number;
+    });
+  }
+
+  /**
+   * The block producer's tick: closes the open block without opening the next one,
+   * so an idle node writes no empty blocks. The next write opens a block stamped
+   * with the time of that write.
+   */
+  async closeBlock(): Promise<void> {
+    await this.store.transaction(async () => {
+      this.closed = true;
     });
   }
 
@@ -143,7 +161,10 @@ export class LogWriter {
   }
 
   private async ensureBlock(t: LogTransaction): Promise<void> {
-    if (!(await t.openBlock())) await t.startBlock(this.options.clock());
+    if (this.closed || !(await t.openBlock())) {
+      await t.startBlock(this.options.clock());
+      this.closed = false;
+    }
   }
 }
 
