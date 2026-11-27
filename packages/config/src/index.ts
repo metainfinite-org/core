@@ -11,11 +11,23 @@ export interface DeploymentConfig {
   readonly blockIntervalMs: number;
   readonly signIn: "dev" | "oidc";
   readonly storage: "memory" | "postgres";
+  readonly features: Features;
 }
+
+/**
+ * Switches for parked code paths (09). Parked code stays in the tree and keeps
+ * its tests; a switched-off feature is only hidden, never deleted.
+ */
+export interface Features {
+  /** Apps defined by config in the log (views, actions) and the App Maker. Off: only native apps. */
+  readonly configApps: boolean;
+}
+
+const FEATURE_DEFAULTS = { config_apps: true } as const;
 
 export class ConfigError extends Error {}
 
-const DEFAULTS = { name: "local", first_identity: 1, block_interval_ms: 1000, sign_in: "dev", storage: "memory" } as const;
+const DEFAULTS = { name: "local", first_identity: 1, block_interval_ms: 1000, sign_in: "dev", storage: "memory", features: {} } as const;
 
 export function parseDeploymentConfig(text: string): DeploymentConfig {
   const raw: unknown = parse(text) ?? {};
@@ -36,7 +48,18 @@ export function parseDeploymentConfig(text: string): DeploymentConfig {
   }
   if (r.sign_in !== "dev" && r.sign_in !== "oidc") throw new ConfigError('sign_in must be "dev" or "oidc"');
   if (r.storage !== "memory" && r.storage !== "postgres") throw new ConfigError('storage must be "memory" or "postgres"');
-  return { name: r.name, firstIdentity, blockIntervalMs: r.block_interval_ms, signIn: r.sign_in, storage: r.storage };
+  return { name: r.name, firstIdentity, blockIntervalMs: r.block_interval_ms, signIn: r.sign_in, storage: r.storage, features: parseFeatures(r.features) };
+}
+
+function parseFeatures(raw: unknown): Features {
+  if (raw === null || raw === undefined) return { configApps: FEATURE_DEFAULTS.config_apps };
+  if (typeof raw !== "object" || Array.isArray(raw)) throw new ConfigError("features must be a mapping");
+  const f = { ...FEATURE_DEFAULTS, ...(raw as Record<string, unknown>) };
+  for (const k of Object.keys(raw)) {
+    if (!(k in FEATURE_DEFAULTS)) throw new ConfigError(`unknown feature "${k}" in deployment.yml`);
+  }
+  if (typeof f.config_apps !== "boolean") throw new ConfigError("features.config_apps must be true or false");
+  return { configApps: f.config_apps };
 }
 
 export function loadDeploymentConfig(path: string): DeploymentConfig {

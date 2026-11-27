@@ -1,10 +1,10 @@
-// What a block sees while rendering: the view's props (from the URL), the item
-// in scope (inside list/tree/item blocks), and the session. ValueRefs and
+// What a widget sees while rendering: the view's props (from the URL), the item
+// in scope (inside list/tree/item widgets), and the session. ValueRefs and
 // templates read from here; nothing else is reachable from config.
 
 import type { JsonValue } from "@ev/core/browser";
 import type { ItemJson } from "./api";
-import type { ValueRef } from "./blocks";
+import type { ValueRef } from "./widgets";
 
 export interface Scope {
   readonly app: string;

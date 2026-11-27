@@ -36,7 +36,7 @@
             "extensions": { "type": "object" }
           }
         },
-        "extensions": { "genesis": { "message": "Let there be types." } }
+        "extensions": { "genesis": { "message": "Let there be types!" } }
       }
     },
 
@@ -86,7 +86,7 @@
         "properties": {
           "name": { "type": "string", "minLength": 1, "maxLength": 200 },
           "props": { "type": "object", "description": "prop name -> { type: address | string | id, default? }; serialized into the URL" },
-          "root": { "type": "object", "description": "component tree of whitelisted blocks (@ev/engine)" }
+          "root": { "type": "object", "description": "tree of whitelisted widgets (@ev/engine)" }
         } } } },
     { "name": "type:action", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
       "payload": { "name": "action", "schema": {
@@ -111,7 +111,7 @@
           "types": { "type": "array", "items": { "type": "string", "format": "address" } },
           "open": { "type": "object", "description": "type address -> view address that opens one event of it (prop: node)" },
           "typeViews": { "type": "object", "description": "type address -> type view address the app uses for it" },
-          "kernel": { "type": "string", "description": "hand-coded implementation in the shell; honored only for genesis apps" }
+          "native": { "type": "string", "description": "a native (hand-written) UI in the shell; honored only for genesis apps" }
         } } } },
 
     { "name": "type:post", "app": "@id:creator", "user": "@id:creator", "type": "@type:type",
@@ -143,10 +143,10 @@
         "properties": { "proposals": { "type": "array", "items": { "type": "string", "format": "address" } } } } } },
 
     { "name": "event:manifest-idm", "app": "@id:idm", "user": "@id:idm", "type": "@type:manifest",
-      "payload": { "name": "Accounts", "description": "Your account, the apps you have granted, and the apps you control.", "kernel": "idm" } },
+      "payload": { "name": "Accounts", "description": "Your account, the apps you have granted, and the apps you control.", "native": "idm" } },
     { "name": "event:manifest-type-maker", "app": "@id:type-maker", "user": "@id:type-maker", "type": "@type:manifest",
-      "payload": { "name": "Type Maker", "description": "Create types and their default views; create instances of any type.", "kernel": "type-maker" } },
+      "payload": { "name": "Type Maker", "description": "Create types and their default views; create instances of any type.", "native": "type-maker" } },
     { "name": "event:manifest-app-maker", "app": "@id:app-maker", "user": "@id:app-maker", "type": "@type:manifest",
-      "payload": { "name": "App Maker", "description": "Build an app from types: views, actions and a manifest, with no code.", "kernel": "app-maker" } }
+      "payload": { "name": "App Maker", "description": "Build an app from types: views, actions and a manifest, with no code.", "native": "app-maker" } }
   ]
 }

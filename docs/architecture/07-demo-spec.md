@@ -19,7 +19,7 @@ Prove the model end-to-end on one trusted server, with every identifier and stru
 - Genesis seed script (creator, IDM, tool apps, meta-type, primitives, base types, first configs)
 - Projection engine with the validity rules: grants & revocation, `user == app`, supersede (single-author), delete, proposals & merge bot, soft/hard references, type lineage, app config heads
 - Single default IDM owning all accounts; sign-in via a **dev login** locally (pick or type a username, no password) and OIDC/OAuth on a server; lazy auto-approved grants; revocation UI
-- Shell ("browser in the browser"), engine with the block whitelist
+- Shell ("browser in the browser"), engine with the widget whitelist
 - Hand-coded Type Maker, App Maker, event-graph visualizer
 - At least one fully declarative app: reddit-style posts and nested comments with votes (up/down) and new/top/hot sorting, built with the makers
 - Server-side schema validation at insert
@@ -184,7 +184,8 @@ CREATE TABLE custody (identity BIGINT, human_account BIGINT, role TEXT);        
 ## 8. Apps in the demo
 
 - **Hand-coded tools:** Type Maker, App Maker; Graph Visualizer after the first demo (+ the shell and the IDM's account/grants screens).
-- **Declarative:** reddit-style posts and comments with votes and hot/new/top sorting. For the company deployment, whatever the team builds itself (`10`). No pages or rich-text documents, no full-text search and no importers for now: the goal is new, strongly typed kinds of events, not traditional documents.
+- **Native first (decided, `05` §5):** the first apps, including the reddit-style one, are hand-written in the shell with fixed genesis types. Config-defined apps and the App Maker are parked behind `features.config_apps: false` (§11).
+- **Declarative (parked):** reddit-style posts and comments with votes and hot/new/top sorting. For the company deployment, whatever the team builds itself (`10`). No pages or rich-text documents, no full-text search and no importers for now: the goal is new, strongly typed kinds of events, not traditional documents.
 - **Seeded types:** meta-type, primitives, view, action, manifest, type view, type annotation, grant, revoke, edit (supersede), delete, post, comment, reaction, like, vote, proposal, merge.
 
 ## 9. Implementation stack
@@ -228,7 +229,7 @@ The shell is a "browser inside the browser", and it **owns the real browser URL*
   - **PostgreSQL** 16 or newer. Either install it natively (on Windows: the EDB installer or `winget`, which also brings `psql`), or run it in Docker.
   - **Git.**
   - **Not needed globally:** TypeScript and the other tools are dev dependencies of the repo, installed by `pnpm install` and run through its scripts. Docker is optional, for Postgres or for packaging.
-- **[P] A `deployment.yml` file** holds the deployment's parameters: name, `first_identity` (1 for local and company deployments, e.g. 1,000,001 for the public demo), block interval (default 1 s), sign-in provider (dev login or OIDC/OAuth). Secrets (database URL, OAuth client secret) come from environment variables, not from the file.
+- **[P] A `deployment.yml` file** holds the deployment's parameters: name, `first_identity` (1 for local and company deployments, e.g. 1,000,001 for the public demo), block interval (default 1 s), sign-in provider (dev login or OIDC/OAuth), storage, and `features`: switches for parked code paths, such as `config_apps` (decision 201). Secrets (database URL, OAuth client secret) come from environment variables, not from the file.
 - **Genesis parameters are read once**, when genesis runs on an empty database, and are recorded in genesis itself, e.g. in the creator's `create_identity` tx. The database is then self-describing, and editing the file later doesn't change an existing deployment.
 - **Deployments never merge their data** (decided), so their id ranges may overlap: local and company start at 1. Interesting **types and apps move between deployments as bundles** with symbolic references, imported as new events (`05` §6).
 

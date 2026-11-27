@@ -6,7 +6,7 @@
 import { useEffect } from "react";
 import type { JsonValue } from "@ev/core/browser";
 import { api } from "../api";
-import { EventCard, type RenderCtx } from "../render/blocks";
+import { EventCard, type RenderCtx } from "../render/widgets";
 import { href, navigate, onLink } from "../router";
 import { useApp, useData } from "../state";
 
@@ -28,7 +28,7 @@ export function EventPage({ address, app, exact }: { address: string; app: strin
   const type = ev.data ? types.get(ev.data.event.type) : undefined;
   const appView = !exact && type ? open[type.address] ?? open[type.versionRoot] : undefined;
   useEffect(() => {
-    if (appView && cfg && !cfg.kernel) navigate(href.view(owner, appView, { node: item.data?.address ?? address }), true);
+    if (appView && cfg && !cfg.native) navigate(href.view(owner, appView, { node: item.data?.address ?? address }), true);
   }, [appView, cfg?.app, item.data?.address]);
 
   if (ev.error) return <div className="card"><h2>{address}</h2><p className="error">{(ev.error as { status?: number }).status === 410 ? "Deleted by its author. The event stays in the log." : ev.error.message}</p></div>;

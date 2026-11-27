@@ -2,7 +2,7 @@
 // from a fixed menu, name the app, save. Saving creates an app identity owned
 // by the IDM (with custody for you), then emits the app's actions, views and
 // manifest as the app itself (03 §8). The generated bundle can be edited as
-// JSON before saving: anything the whitelisted blocks can express.
+// JSON before saving: anything the whitelisted widgets can express.
 
 import { useEffect, useMemo, useState } from "react";
 import type { JsonValue } from "@ev/core/browser";
@@ -174,7 +174,7 @@ export function AppMaker({ props }: { app: string; props: Record<string, string>
 
           <details onToggle={(e) => setRaw((e.target as HTMLDetailsElement).open && generated.bundle ? JSON.stringify(generated.bundle, null, 2) : null)}>
             <summary className="small">Edit the generated config as JSON (advanced)</summary>
-            <p className="muted small">Actions, then views, then the manifest. "@action:key" and "@view:key" become addresses when published. Blocks: stack, row, grid, text, list, tree, item, event, button, form, link, view.</p>
+            <p className="muted small">Actions, then views, then the manifest. "@action:key" and "@view:key" become addresses when published. Widgets: stack, row, grid, text, list, tree, item, event, button, form, link, view.</p>
             {raw !== null && <textarea className="code" rows={24} value={raw} onChange={(e) => setRaw(e.target.value)} />}
           </details>
 

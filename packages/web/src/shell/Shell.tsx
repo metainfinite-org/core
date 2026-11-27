@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../api";
 import { AppMaker } from "../makers/AppMaker";
 import { TypeMaker } from "../makers/TypeMaker";
-import { ConfigError, ViewHost, type RenderCtx } from "../render/blocks";
+import { ConfigError, ViewHost, type RenderCtx } from "../render/widgets";
 import { href, navigate, onLink, useRoute, type Route } from "../router";
 import { useApp, useData } from "../state";
 import { Accounts } from "./Accounts";
@@ -70,20 +70,22 @@ function Home() {
       <section className="intro">
         <h1>Apps</h1>
         <p className="muted">
-          Every app here is an identity plus config events in the log, rendered by one engine. Make types in the Type Maker, compose them into an app in the App Maker, and open it.
+          {session?.features.configApps === false
+            ? "Every app here is an identity with a manifest in the log. Make types in the Type Maker and create events of any type."
+            : "Every app here is an identity plus config events in the log, rendered by one engine. Make types in the Type Maker, compose them into an app in the App Maker, and open it."}
           {!session?.me && <> <a href={href.login()} onClick={onLink(href.login())}>Sign in</a> to post.</>}
         </p>
       </section>
       {apps.error && <div className="error">{apps.error.message}</div>}
       <div className="launcher">
         {apps.data?.apps.map((a) => (
-          <a key={a.id} className={`app-tile${a.kernel ? " tool" : ""}`} href={href.app(a.id)} onClick={onLink(href.app(a.id))}>
+          <a key={a.id} className={`app-tile${a.native ? " tool" : ""}`} href={href.app(a.id)} onClick={onLink(href.app(a.id))}>
             <span className="app-name">{a.name}</span>
-            <span className="muted small">{a.description || (a.kernel ? "tool" : `app ${a.id}`)}</span>
+            <span className="muted small">{a.description || (a.native ? "tool" : `app ${a.id}`)}</span>
             <span className="tile-meta">
               <span className="muted small">#{a.id}</span>
               {a.mine && <span className="badge">yours</span>}
-              {a.kernel && <span className="badge">built in</span>}
+              {a.native && <span className="badge">built in</span>}
             </span>
           </a>
         ))}
@@ -121,7 +123,7 @@ function Login() {
   );
 }
 
-/** Opens an app: its kernel tool if it is a genesis tool, otherwise its declarative config. */
+/** Opens an app: its native UI if it is a genesis tool, otherwise its declarative config. */
 function AppPage({ app, view, props }: { app: string; view: string | null; props: Record<string, string> }) {
   const { session } = useApp();
   const config = useData(`config:${app}`, () => api.config(app));
@@ -130,7 +132,7 @@ function AppPage({ app, view, props }: { app: string; view: string | null; props
   // Lazy grant (03 §4, 07 §7): the first time a user opens an app, their IDM issues a grant, auto-approved.
   useEffect(() => {
     setGrant(undefined);
-    if (!session?.me || !config.data || config.data.kernel === "idm") return;
+    if (!session?.me || !config.data || config.data.native === "idm") return;
     api.ensureGrant(app).then((r) => setGrant(r.address), () => setGrant(null));
   }, [app, session?.me?.id, config.data?.app]);
 
@@ -144,7 +146,7 @@ function AppPage({ app, view, props }: { app: string; view: string | null; props
     </div>
   ) : null;
 
-  switch (cfg.kernel) {
+  switch (cfg.native) {
     case "type-maker": return <>{banner}<TypeMaker app={app} config={cfg} /></>;
     case "app-maker": return <>{banner}<AppMaker app={app} props={props} /></>;
     case "idm": return <Accounts />;

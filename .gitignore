@@ -3,3 +3,6 @@ dist/
 coverage/
 *.log
 .env
+# Private redaction terms for the conversation log (scripts/conversation-log.mjs)
+.claude/conversation-redact.txt
+.claude/settings.local.json

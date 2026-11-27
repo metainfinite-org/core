@@ -3,7 +3,7 @@
 // instantiated and shown the moment it exists.
 
 import type { JsonValue } from "@ev/core/browser";
-import type { Block } from "./blocks";
+import type { Widget } from "./widgets";
 
 type Schema = { readonly [k: string]: JsonValue };
 
@@ -143,16 +143,16 @@ export function templateFields(template: string): string[] {
  * as a title (if the type has one), then every other field as "Label: value".
  * The Type Maker stores this as the type's first default type view.
  */
-export function autoLayout(schema: Schema, displayTemplate?: string | null): Block {
+export function autoLayout(schema: Schema, displayTemplate?: string | null): Widget {
   const fields = formFields(schema);
   const shown = new Set(displayTemplate ? templateFields(displayTemplate) : []);
-  const children: Block[] = [];
-  if (displayTemplate) children.push({ block: "text", text: displayTemplate, style: "title" });
+  const children: Widget[] = [];
+  if (displayTemplate) children.push({ widget: "text", text: displayTemplate, style: "title" });
   for (const f of fields) {
     if (shown.has(f.name)) continue;
     const long = f.kind === "text";
-    children.push(long ? { block: "text", text: `{${f.name}}`, style: "body" } : { block: "text", text: `${f.label}: {${f.name}}`, style: "muted" });
+    children.push(long ? { widget: "text", text: `{${f.name}}`, style: "body" } : { widget: "text", text: `${f.label}: {${f.name}}`, style: "muted" });
   }
-  if (children.length === 0) children.push({ block: "text", text: "{$address}", style: "muted" });
-  return { block: "stack", gap: 4, children };
+  if (children.length === 0) children.push({ widget: "text", text: "{$address}", style: "muted" });
+  return { widget: "stack", gap: 4, children };
 }

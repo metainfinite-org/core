@@ -1,11 +1,11 @@
 // App Maker v1 (08 P5): pick types, a layout and sorts from a fixed menu, a
 // name, and get a complete app bundle: actions from the types' generated
-// forms, a home view and an item view composed from whitelisted blocks, and a
+// forms, a home view and an item view composed from whitelisted widgets, and a
 // manifest. No code; the generated bundle can be edited as JSON before saving.
 
 import type { JsonValue } from "@ev/core/browser";
 import type { TypeJson } from "./api";
-import type { Block, SortKey } from "./blocks";
+import type { Widget, SortKey } from "./widgets";
 import type { AppBundle, BundleEntry } from "./bundle";
 
 export interface AppSpec {
@@ -57,59 +57,59 @@ export function buildAppBundle(spec: AppSpec, types: ReadonlyMap<string, TypeJso
   });
 
   // Voting controls for the item in scope.
-  let votes: Block | null = null;
+  let votes: Widget | null = null;
   if (spec.scoreType) {
     const score = types.get(spec.scoreType);
     if (isUpDown(score)) {
       actions.push({ key: "up", payload: { name: "Upvote", label: "▲", creates: spec.scoreType, ref: "$item", fixed: { value: 1 } } });
       actions.push({ key: "down", payload: { name: "Downvote", label: "▼", creates: spec.scoreType, ref: "$item", fixed: { value: -1 } } });
-      votes = { block: "stack", gap: 0, children: [
-        { block: "button", action: "@action:up" },
-        { block: "text", text: "{$score}", style: "title" },
-        { block: "button", action: "@action:down" },
+      votes = { widget: "stack", gap: 0, children: [
+        { widget: "button", action: "@action:up" },
+        { widget: "text", text: "{$score}", style: "title" },
+        { widget: "button", action: "@action:down" },
       ] };
     } else {
       actions.push({ key: "react", payload: { name: nameOf(spec.scoreType), label: `+ ${nameOf(spec.scoreType)}`, creates: spec.scoreType, ref: "$item" } });
-      votes = { block: "stack", gap: 0, children: [
-        { block: "button", action: "@action:react" },
-        { block: "text", text: "{$votes}", style: "muted" },
+      votes = { widget: "stack", gap: 0, children: [
+        { widget: "button", action: "@action:react" },
+        { widget: "text", text: "{$votes}", style: "muted" },
       ] };
     }
   }
   const score = spec.scoreType ? { score: spec.scoreType } : {};
-  const withVotes = (main: Block): Block => (votes ? { block: "row", gap: 12, align: "start", children: [votes, main] } : main);
-  const sortLinks = (props: { [k: string]: string }): Block => ({
-    block: "row", gap: 8,
-    children: (["hot", "new", "top"] as SortKey[]).map((s) => ({ block: "link", text: SORT_LABELS[s], props: { ...props, sort: s } }) as Block),
+  const withVotes = (main: Widget): Widget => (votes ? { widget: "row", gap: 12, align: "start", children: [votes, main] } : main);
+  const sortLinks = (props: { [k: string]: string }): Widget => ({
+    widget: "row", gap: 8,
+    children: (["hot", "new", "top"] as SortKey[]).map((s) => ({ widget: "link", text: SORT_LABELS[s], props: { ...props, sort: s } }) as Widget),
   });
 
   // --- the item page: one item, its votes, a reply form, and the discussion ---
-  const replyItem: Block = withVotes({ block: "stack", gap: 4, children: [
-    { block: "event", controls: true },
-    { block: "row", gap: 8, wrap: true, children: [
-      { block: "text", text: "{$author} · {$time}", style: "muted" },
-      ...replyActions.map((a): Block => ({ block: "form", action: `@action:${a}`, collapsed: true, label: "reply" })),
+  const replyItem: Widget = withVotes({ widget: "stack", gap: 4, children: [
+    { widget: "event", controls: true },
+    { widget: "row", gap: 8, wrap: true, children: [
+      { widget: "text", text: "{$author} · {$time}", style: "muted" },
+      ...replyActions.map((a): Widget => ({ widget: "form", action: `@action:${a}`, collapsed: true, label: "reply" })),
     ] },
   ] });
-  const discussion: Block[] = spec.replyTypes.length === 0 ? [] : [
+  const discussion: Widget[] = spec.replyTypes.length === 0 ? [] : [
     sortLinks({ node: "$props.node" }),
     spec.replyLayout === "tree"
-      ? { block: "tree", root: "$props.node", types: spec.replyTypes, sort: "$props.sort", ...score, item: replyItem, empty: "No replies yet." }
-      : { block: "list", query: { types: spec.replyTypes, ref: "$props.node" }, sort: "$props.sort", ...score, item: replyItem, empty: "No replies yet." },
+      ? { widget: "tree", root: "$props.node", types: spec.replyTypes, sort: "$props.sort", ...score, item: replyItem, empty: "No replies yet." }
+      : { widget: "list", query: { types: spec.replyTypes, ref: "$props.node" }, sort: "$props.sort", ...score, item: replyItem, empty: "No replies yet." },
   ];
   const itemView: BundleEntry = {
     key: "item",
     payload: {
       name: "Item",
       props: { node: { type: "address" }, sort: { type: "string", default: spec.replySort } },
-      root: { block: "stack", gap: 16, children: [
-        { block: "link", text: `← ${spec.name}`, home: true },
-        { block: "item", of: "$props.node", ...score, children: [
-          withVotes({ block: "stack", gap: 6, children: [
-            { block: "event", controls: true },
-            { block: "text", text: "{$author} · {$time}", style: "muted" },
+      root: { widget: "stack", gap: 16, children: [
+        { widget: "link", text: `← ${spec.name}`, home: true },
+        { widget: "item", of: "$props.node", ...score, children: [
+          withVotes({ widget: "stack", gap: 6, children: [
+            { widget: "event", controls: true },
+            { widget: "text", text: "{$author} · {$time}", style: "muted" },
           ] }),
-          ...replyActions.map((a): Block => ({ block: "form", action: `@action:${a}` })),
+          ...replyActions.map((a): Widget => ({ widget: "form", action: `@action:${a}` })),
         ] },
         ...discussion,
       ] } as unknown as JsonValue,
@@ -117,12 +117,12 @@ export function buildAppBundle(spec: AppSpec, types: ReadonlyMap<string, TypeJso
   };
 
   // --- the home page: post forms, sort links, the ranked list ---
-  const listItem: Block = withVotes({ block: "stack", gap: 4, children: [
-    { block: "event" },
-    { block: "row", gap: 8, children: [
-      { block: "text", text: "{$author} · {$time}", style: "muted" },
-      ...(spec.replyTypes.length > 0 ? [{ block: "link", text: "{$children} replies", view: "@view:item", props: { node: "$item" } } as Block] : []),
-      { block: "link", text: "open", view: "@view:item", props: { node: "$item" } },
+  const listItem: Widget = withVotes({ widget: "stack", gap: 4, children: [
+    { widget: "event" },
+    { widget: "row", gap: 8, children: [
+      { widget: "text", text: "{$author} · {$time}", style: "muted" },
+      ...(spec.replyTypes.length > 0 ? [{ widget: "link", text: "{$children} replies", view: "@view:item", props: { node: "$item" } } as Widget] : []),
+      { widget: "link", text: "open", view: "@view:item", props: { node: "$item" } },
     ] },
   ] });
   const homeView: BundleEntry = {
@@ -130,12 +130,12 @@ export function buildAppBundle(spec: AppSpec, types: ReadonlyMap<string, TypeJso
     payload: {
       name: "Home",
       props: { sort: { type: "string", default: spec.sort } },
-      root: { block: "stack", gap: 16, children: [
-        { block: "text", text: spec.name, style: "heading" },
-        ...(spec.description ? [{ block: "text", text: spec.description, style: "muted" } as Block] : []),
-        ...postActions.map((a): Block => ({ block: "form", action: `@action:${a}`, collapsed: true })),
+      root: { widget: "stack", gap: 16, children: [
+        { widget: "text", text: spec.name, style: "heading" },
+        ...(spec.description ? [{ widget: "text", text: spec.description, style: "muted" } as Widget] : []),
+        ...postActions.map((a): Widget => ({ widget: "form", action: `@action:${a}`, collapsed: true })),
         sortLinks({}),
-        { block: "list", query: { types: spec.postTypes, ref: "none" }, sort: "$props.sort", ...score, item: listItem, empty: "Nothing here yet. Be the first to post." },
+        { widget: "list", query: { types: spec.postTypes, ref: "none" }, sort: "$props.sort", ...score, item: listItem, empty: "Nothing here yet. Be the first to post." },
       ] } as unknown as JsonValue,
     } as { [k: string]: JsonValue },
   };

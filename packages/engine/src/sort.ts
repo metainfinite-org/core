@@ -2,7 +2,7 @@
 // arithmetic, so every client and server orders a list identically (04 §7).
 
 import type { ItemJson } from "./api";
-import { SORT_KEYS, type SortKey } from "./blocks";
+import { SORT_KEYS, type SortKey } from "./widgets";
 
 export function isSortKey(v: unknown): v is SortKey {
   return typeof v === "string" && (SORT_KEYS as readonly string[]).includes(v);

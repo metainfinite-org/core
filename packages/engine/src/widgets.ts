@@ -1,8 +1,8 @@
-// The block whitelist (05 §4 "Composition"). A view is a component tree of
-// these blocks, nothing else: what they can't express can't be built. Config
-// arrives as untrusted JSON from the log, so parseBlock checks every node.
+// The widget whitelist (05 §4 "Composition"). A view is a tree of
+// these widgets, nothing else: what they can't express can't be built. Config
+// arrives as untrusted JSON from the log, so parseWidget checks every node.
 //
-// Values inside blocks are ValueRefs: "$item" (the item in scope), "$props.x"
+// Values inside widgets are ValueRefs: "$item" (the item in scope), "$props.x"
 // (a view prop, from the URL), "$session.user", or a literal string.
 
 export type ValueRef = string;
@@ -18,29 +18,29 @@ export interface QuerySpec {
   readonly author?: ValueRef;
 }
 
-export type Block =
-  | { readonly block: "stack"; readonly gap?: number; readonly children: readonly Block[] }
-  | { readonly block: "row"; readonly gap?: number; readonly align?: "start" | "center" | "end"; readonly wrap?: boolean; readonly children: readonly Block[] }
-  | { readonly block: "grid"; readonly columns: number; readonly gap?: number; readonly children: readonly Block[] }
-  | { readonly block: "text"; readonly text: string; readonly style?: TextStyle }
-  | { readonly block: "list"; readonly query: QuerySpec; readonly sort?: ValueRef; readonly score?: string; readonly limit?: number; readonly item?: Block; readonly empty?: string }
-  | { readonly block: "tree"; readonly root: ValueRef; readonly types: readonly string[]; readonly sort?: ValueRef; readonly score?: string; readonly depth?: number; readonly item?: Block; readonly empty?: string }
-  | { readonly block: "item"; readonly of: ValueRef; readonly score?: string; readonly children: readonly Block[] }
-  | { readonly block: "event"; readonly of?: ValueRef; readonly typeView?: string; readonly controls?: boolean }
-  | { readonly block: "button"; readonly action: string; readonly label?: string }
-  | { readonly block: "form"; readonly action: string; readonly label?: string; readonly collapsed?: boolean }
+export type Widget =
+  | { readonly widget: "stack"; readonly gap?: number; readonly children: readonly Widget[] }
+  | { readonly widget: "row"; readonly gap?: number; readonly align?: "start" | "center" | "end"; readonly wrap?: boolean; readonly children: readonly Widget[] }
+  | { readonly widget: "grid"; readonly columns: number; readonly gap?: number; readonly children: readonly Widget[] }
+  | { readonly widget: "text"; readonly text: string; readonly style?: TextStyle }
+  | { readonly widget: "list"; readonly query: QuerySpec; readonly sort?: ValueRef; readonly score?: string; readonly limit?: number; readonly item?: Widget; readonly empty?: string }
+  | { readonly widget: "tree"; readonly root: ValueRef; readonly types: readonly string[]; readonly sort?: ValueRef; readonly score?: string; readonly depth?: number; readonly item?: Widget; readonly empty?: string }
+  | { readonly widget: "item"; readonly of: ValueRef; readonly score?: string; readonly children: readonly Widget[] }
+  | { readonly widget: "event"; readonly of?: ValueRef; readonly typeView?: string; readonly controls?: boolean }
+  | { readonly widget: "button"; readonly action: string; readonly label?: string }
+  | { readonly widget: "form"; readonly action: string; readonly label?: string; readonly collapsed?: boolean }
   /**
    * Navigation. Targets, first match wins: `event` (open one event), `view`
    * (another view of this app), `home` (the app's home view), or only `props`
    * (this view with other props, e.g. a different sort). Everything lands in the URL.
    */
-  | { readonly block: "link"; readonly text: string; readonly view?: string; readonly home?: boolean; readonly props?: { readonly [k: string]: ValueRef }; readonly event?: ValueRef }
-  | { readonly block: "view"; readonly view: string; readonly props?: { readonly [k: string]: ValueRef } };
+  | { readonly widget: "link"; readonly text: string; readonly view?: string; readonly home?: boolean; readonly props?: { readonly [k: string]: ValueRef }; readonly event?: ValueRef }
+  | { readonly widget: "view"; readonly view: string; readonly props?: { readonly [k: string]: ValueRef } };
 
-export type BlockKind = Block["block"];
+export type WidgetKind = Widget["widget"];
 
-/** Blocks the renderer knows. "graph" is reserved for the Graph Visualizer (after the first demo). */
-export const BLOCK_KINDS: readonly BlockKind[] = ["stack", "row", "grid", "text", "list", "tree", "item", "event", "button", "form", "link", "view"];
+/** Widgets the renderer knows. "graph" is reserved for the Graph Visualizer (after the first demo). */
+export const WIDGET_KINDS: readonly WidgetKind[] = ["stack", "row", "grid", "text", "list", "tree", "item", "event", "button", "form", "link", "view"];
 
 export const LIMITS = { depth: 24, nodes: 400, listLimit: 200, treeDepth: 12, gap: 64, columns: 12, viewNesting: 8 } as const;
 
@@ -74,7 +74,7 @@ export interface ParseOptions {
   readonly symbolic?: boolean;
 }
 
-const ALLOWED: Record<BlockKind, readonly string[]> = {
+const ALLOWED: Record<WidgetKind, readonly string[]> = {
   stack: ["gap", "children"],
   row: ["gap", "align", "wrap", "children"],
   grid: ["columns", "gap", "children"],
@@ -89,8 +89,8 @@ const ALLOWED: Record<BlockKind, readonly string[]> = {
   view: ["view", "props"],
 };
 
-/** Validates an untrusted block tree. Unknown keys are errors, so typos surface in the makers. */
-export function parseBlock(json: unknown, options: ParseOptions = {}): ParseResult<Block> {
+/** Validates an untrusted widget tree. Unknown keys are errors, so typos surface in the makers. */
+export function parseWidget(json: unknown, options: ParseOptions = {}): ParseResult<Widget> {
   const errors: string[] = [];
   const sym = options.symbolic ?? false;
   let nodes = 0;
@@ -98,18 +98,18 @@ export function parseBlock(json: unknown, options: ParseOptions = {}): ParseResu
   const walk = (b: unknown, path: string, depth: number): void => {
     nodes++;
     if (nodes > LIMITS.nodes) {
-      if (nodes === LIMITS.nodes + 1) errors.push(`${path}: more than ${LIMITS.nodes} blocks`);
+      if (nodes === LIMITS.nodes + 1) errors.push(`${path}: more than ${LIMITS.nodes} widgets`);
       return;
     }
     if (depth > LIMITS.depth) return void errors.push(`${path}: nested deeper than ${LIMITS.depth}`);
-    if (!isObj(b)) return void errors.push(`${path}: a block must be an object`);
-    const kind = b.block;
-    if (typeof kind !== "string" || !(BLOCK_KINDS as readonly string[]).includes(kind)) {
-      const note = kind === "graph" ? " (the graph block comes with the Graph Visualizer)" : "";
-      return void errors.push(`${path}: unknown block ${JSON.stringify(kind)}${note}`);
+    if (!isObj(b)) return void errors.push(`${path}: a widget must be an object`);
+    const kind = b.widget;
+    if (typeof kind !== "string" || !(WIDGET_KINDS as readonly string[]).includes(kind)) {
+      const note = kind === "graph" ? " (the graph widget comes with the Graph Visualizer)" : "";
+      return void errors.push(`${path}: unknown widget ${JSON.stringify(kind)}${note}`);
     }
-    const k0 = kind as BlockKind;
-    for (const k of Object.keys(b)) if (k !== "block" && !ALLOWED[k0].includes(k)) errors.push(`${path}.${k}: not a property of ${kind}`);
+    const k0 = kind as WidgetKind;
+    for (const k of Object.keys(b)) if (k !== "widget" && !ALLOWED[k0].includes(k)) errors.push(`${path}.${k}: not a property of ${kind}`);
 
     const str = (k: string, required: boolean, max = 2000): void => {
       const v = b[k];
@@ -137,7 +137,7 @@ export function parseBlock(json: unknown, options: ParseOptions = {}): ParseResu
     };
     const children = (k: string): void => {
       const v = b[k];
-      if (!Array.isArray(v)) return void errors.push(`${path}.${k}: must be a list of blocks`);
+      if (!Array.isArray(v)) return void errors.push(`${path}.${k}: must be a list of widgets`);
       v.forEach((c, i) => walk(c, `${path}.${k}[${i}]`, depth + 1));
     };
     const props = (k: string): void => {
@@ -239,7 +239,7 @@ export function parseBlock(json: unknown, options: ParseOptions = {}): ParseResu
   };
 
   walk(json, "$", 0);
-  return errors.length === 0 ? { value: json as Block, errors } : { errors };
+  return errors.length === 0 ? { value: json as Widget, errors } : { errors };
 }
 
 export interface PropDef {
@@ -250,7 +250,7 @@ export interface PropDef {
 export interface ViewConfig {
   readonly name: string;
   readonly props: { readonly [name: string]: PropDef };
-  readonly root: Block;
+  readonly root: Widget;
 }
 
 /** Validates a view event's payload (05 §4). */
@@ -275,7 +275,7 @@ export function parseView(payload: unknown, options: ParseOptions = {}): ParseRe
       }
     }
   }
-  const root = parseBlock(payload.root, options);
+  const root = parseWidget(payload.root, options);
   errors.push(...root.errors.map((e) => `root${e.slice(1)}`));
   if (errors.length > 0) return { errors };
   return { value: { name: payload.name as string, props, root: root.value! }, errors };

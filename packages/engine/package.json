@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "The app engine's shared logic (05 §4): block whitelist, view/action config, templates, schema-generated forms and layouts, sorts, type-view fallback, the App Maker generator. Runs in the browser and on the server.",
+  "description": "The app engine's shared logic (05 §4): widget whitelist, view/action config, templates, schema-generated forms and layouts, sorts, type-view fallback, the App Maker generator. Runs in the browser and on the server.",
   "exports": { ".": "./src/index.ts" },
   "dependencies": { "@ev/core": "workspace:*", "@ev/rules": "workspace:*" }
 }

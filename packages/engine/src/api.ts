@@ -61,8 +61,8 @@ export interface AppJson {
   readonly name: string;
   readonly description: string;
   readonly manifest: string;
-  /** Hand-coded implementation, honored only for genesis apps. */
-  readonly kernel: string | null;
+  /** Native (hand-written) UI in the shell, honored only for genesis apps. */
+  readonly native: string | null;
   readonly owner: string;
   /** The signed-in human may control it (IDM custody). */
   readonly mine: boolean;
@@ -71,7 +71,7 @@ export interface AppJson {
 export interface AppConfigJson {
   readonly app: string;
   readonly name: string;
-  readonly kernel: string | null;
+  readonly native: string | null;
   readonly manifest: EventJson;
   readonly views: { readonly [address: string]: EventJson };
   readonly actions: { readonly [address: string]: EventJson };
@@ -87,8 +87,10 @@ export interface SessionJson {
   readonly me: MeJson | null;
   readonly signIn: "dev" | "oidc";
   readonly deployment: string;
-  /** Genesis tool apps by kernel name. */
-  readonly tools: { readonly [kernel: string]: string };
+  /** Genesis tool apps by their native UI name. */
+  readonly tools: { readonly [native: string]: string };
+  /** The deployment's feature switches (deployment.yml `features`). */
+  readonly features: { readonly configApps: boolean };
   /** Genesis types by symbolic name, e.g. "vote" -> "1/27/1/1". */
   readonly genesisTypes: { readonly [name: string]: string };
 }

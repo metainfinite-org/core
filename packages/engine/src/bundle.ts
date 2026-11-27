@@ -6,7 +6,7 @@
 // between deployments.
 
 import type { JsonValue } from "@ev/core/browser";
-import { parseAction, parseView } from "./blocks";
+import { parseAction, parseView } from "./widgets";
 
 export interface BundleEntry {
   readonly key: string;

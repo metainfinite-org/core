@@ -9,7 +9,7 @@ import type { JsonValue } from "@ev/core/browser";
 import { autoLayout, formFields, type AppConfigJson, type TypeJson } from "@ev/engine";
 import { extendSchema, type Schema } from "@ev/rules/schema";
 import { api } from "../api";
-import { ConfigError, EventCard, type RenderCtx } from "../render/blocks";
+import { ConfigError, EventCard, type RenderCtx } from "../render/widgets";
 import { SchemaForm } from "../render/forms";
 import { href, onLink } from "../router";
 import { useApp, useData } from "../state";

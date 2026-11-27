@@ -1,6 +1,6 @@
 // The engine's renderer (05 §4): interprets view config, a component tree of
-// whitelisted blocks, with React. Config comes from the log, so it is parsed
-// (parseBlock/parseView) before anything renders, and errors are shown, not thrown.
+// whitelisted widgets, with React. Config comes from the log, so it is parsed
+// (parseWidget/parseView) before anything renders, and errors are shown, not thrown.
 
 import { useState, type CSSProperties, type ReactNode } from "react";
 import type { JsonValue } from "@ev/core/browser";
@@ -11,13 +11,13 @@ import {
   formFromPayload,
   isSortKey,
   parseAction,
-  parseBlock,
+  parseWidget,
   parseView,
   renderTemplate,
   resolveRendering,
   resolveValue,
   type AppConfigJson,
-  type Block,
+  type Widget,
   type ItemJson,
   type Scope,
 } from "@ev/engine";
@@ -32,7 +32,7 @@ export interface RenderCtx {
   readonly config: AppConfigJson | null;
   /** The view being shown, for links that only change props. */
   readonly view: string | null;
-  /** How many views deep we are (view blocks can nest). */
+  /** How many views deep we are (view widgets can nest). */
   readonly nesting: number;
 }
 
@@ -61,70 +61,70 @@ export function ViewHost({ ctx, view, props }: { ctx: RenderCtx; view: string; p
   for (const [k, d] of Object.entries(parsed.value.props)) if (d.default !== undefined) resolved[k] = d.default;
   Object.assign(resolved, props);
   const scope: Scope = { app: ctx.app, props: resolved, ...(session?.me ? { session: session.me.id } : {}) };
-  return <BlockView block={parsed.value.root} scope={scope} ctx={{ ...ctx, view, nesting: ctx.nesting + 1 }} />;
+  return <WidgetView widget={parsed.value.root} scope={scope} ctx={{ ...ctx, view, nesting: ctx.nesting + 1 }} />;
 }
 
 const gapStyle = (gap: number | undefined, def: number): CSSProperties => ({ gap: `${gap ?? def}px` });
 
-export function BlockView({ block, scope, ctx }: { block: Block; scope: Scope; ctx: RenderCtx }): ReactNode {
+export function WidgetView({ widget, scope, ctx }: { widget: Widget; scope: Scope; ctx: RenderCtx }): ReactNode {
   const { nameOf } = useApp();
-  const kids = (children: readonly Block[]) => children.map((c, i) => <BlockView key={i} block={c} scope={scope} ctx={ctx} />);
-  switch (block.block) {
+  const kids = (children: readonly Widget[]) => children.map((c, i) => <WidgetView key={i} widget={c} scope={scope} ctx={ctx} />);
+  switch (widget.widget) {
     case "stack":
-      return <div className="b-stack" style={gapStyle(block.gap, 8)}>{kids(block.children)}</div>;
+      return <div className="b-stack" style={gapStyle(widget.gap, 8)}>{kids(widget.children)}</div>;
     case "row":
-      return <div className={`b-row align-${block.align ?? "center"}${block.wrap ? " wrap" : ""}`} style={gapStyle(block.gap, 8)}>{kids(block.children)}</div>;
+      return <div className={`b-row align-${widget.align ?? "center"}${widget.wrap ? " wrap" : ""}`} style={gapStyle(widget.gap, 8)}>{kids(widget.children)}</div>;
     case "grid":
-      return <div className="b-grid" style={{ ...gapStyle(block.gap, 12), gridTemplateColumns: `repeat(${block.columns}, minmax(0, 1fr))` }}>{kids(block.children)}</div>;
+      return <div className="b-grid" style={{ ...gapStyle(widget.gap, 12), gridTemplateColumns: `repeat(${widget.columns}, minmax(0, 1fr))` }}>{kids(widget.children)}</div>;
     case "text": {
-      const text = renderTemplate(block.text, scope, { nameOf });
-      const style = block.style ?? "body";
+      const text = renderTemplate(widget.text, scope, { nameOf });
+      const style = widget.style ?? "body";
       if (style === "heading") return <h2 className="b-text heading">{text}</h2>;
       return <div className={`b-text ${style}`}>{text}</div>;
     }
     case "list":
-      return <ListBlock block={block} scope={scope} ctx={ctx} />;
+      return <ListWidget widget={widget} scope={scope} ctx={ctx} />;
     case "tree":
-      return <TreeBlock block={block} scope={scope} ctx={ctx} />;
+      return <TreeWidget widget={widget} scope={scope} ctx={ctx} />;
     case "item":
-      return <ItemBlock block={block} scope={scope} ctx={ctx} />;
+      return <ItemWidget widget={widget} scope={scope} ctx={ctx} />;
     case "event":
-      return <EventBlock block={block} scope={scope} ctx={ctx} />;
+      return <EventWidget widget={widget} scope={scope} ctx={ctx} />;
     case "button":
-      return <ActionButton action={block.action} label={block.label} scope={scope} ctx={ctx} />;
+      return <ActionButton action={widget.action} label={widget.label} scope={scope} ctx={ctx} />;
     case "form":
-      return <ActionForm action={block.action} label={block.label} collapsed={block.collapsed ?? false} scope={scope} ctx={ctx} />;
+      return <ActionForm action={widget.action} label={widget.label} collapsed={widget.collapsed ?? false} scope={scope} ctx={ctx} />;
     case "link": {
-      const to = linkTarget(block, scope, ctx);
-      const text = renderTemplate(block.text, scope, { nameOf });
+      const to = linkTarget(widget, scope, ctx);
+      const text = renderTemplate(widget.text, scope, { nameOf });
       if (!to) return <span className="b-link disabled">{text}</span>;
       const active = to === window.location.pathname + window.location.search;
       return <a className={`b-link${active ? " active" : ""}`} href={to} onClick={onLink(to)}>{text}</a>;
     }
     case "view": {
       const props: Record<string, string> = {};
-      for (const [k, v] of Object.entries(block.props ?? {})) {
+      for (const [k, v] of Object.entries(widget.props ?? {})) {
         const r = resolveValue(v, scope);
         if (r !== undefined) props[k] = r;
       }
-      return <ViewHost ctx={ctx} view={block.view} props={props} />;
+      return <ViewHost ctx={ctx} view={widget.view} props={props} />;
     }
   }
 }
 
-function linkTarget(block: Extract<Block, { block: "link" }>, scope: Scope, ctx: RenderCtx): string | null {
+function linkTarget(widget: Extract<Widget, { widget: "link" }>, scope: Scope, ctx: RenderCtx): string | null {
   const props: Record<string, string> = {};
-  for (const [k, v] of Object.entries(block.props ?? {})) {
+  for (const [k, v] of Object.entries(widget.props ?? {})) {
     const r = resolveValue(v, scope);
     if (r === undefined) return null;
     props[k] = r;
   }
-  if (block.event) {
-    const e = resolveValue(block.event, scope);
+  if (widget.event) {
+    const e = resolveValue(widget.event, scope);
     return e ? href.event(e, ctx.app) : null;
   }
-  if (block.view) return href.view(ctx.app, block.view, props);
-  if (block.home) return href.app(ctx.app);
+  if (widget.view) return href.view(ctx.app, widget.view, props);
+  if (widget.home) return href.app(ctx.app);
   // Same view, other props (e.g. a sort): keep the current ones.
   const home = ctx.config && typeof (ctx.config.manifest.payload as { home?: unknown }).home === "string" ? ((ctx.config.manifest.payload as { home: string }).home) : null;
   const view = ctx.view ?? home;
@@ -136,44 +136,44 @@ function sortOf(ref: string | undefined, scope: Scope, def: string): string {
   return isSortKey(s) ? s : def;
 }
 
-function ListBlock({ block, scope, ctx }: { block: Extract<Block, { block: "list" }>; scope: Scope; ctx: RenderCtx }) {
-  const ref = block.query.ref === undefined ? undefined : block.query.ref === "none" ? "none" : resolveValue(block.query.ref, scope);
-  const author = block.query.author === undefined ? undefined : resolveValue(block.query.author, scope);
-  const sort = sortOf(block.sort, scope, "new");
-  const blocked = (block.query.ref !== undefined && ref === undefined) || (block.query.author !== undefined && author === undefined);
-  const q = { types: block.query.types, sort, limit: block.limit ?? 50, ...(ref ? { ref } : {}), ...(author ? { author } : {}), ...(block.score ? { score: block.score } : {}) };
+function ListWidget({ widget, scope, ctx }: { widget: Extract<Widget, { widget: "list" }>; scope: Scope; ctx: RenderCtx }) {
+  const ref = widget.query.ref === undefined ? undefined : widget.query.ref === "none" ? "none" : resolveValue(widget.query.ref, scope);
+  const author = widget.query.author === undefined ? undefined : resolveValue(widget.query.author, scope);
+  const sort = sortOf(widget.sort, scope, "new");
+  const blocked = (widget.query.ref !== undefined && ref === undefined) || (widget.query.author !== undefined && author === undefined);
+  const q = { types: widget.query.types, sort, limit: widget.limit ?? 50, ...(ref ? { ref } : {}), ...(author ? { author } : {}), ...(widget.score ? { score: widget.score } : {}) };
   const data = useData(blocked ? null : `list:${JSON.stringify(q)}`, () => api.events(q));
   if (blocked) return null;
   if (data.error) return <div className="error">{data.error.message}</div>;
   if (!data.data) return <div className="muted">Loading…</div>;
-  if (data.data.items.length === 0) return <div className="muted empty">{block.empty ?? "Nothing yet."}</div>;
-  const item = block.item ?? { block: "event" as const };
+  if (data.data.items.length === 0) return <div className="muted empty">{widget.empty ?? "Nothing yet."}</div>;
+  const item = widget.item ?? { widget: "event" as const };
   return (
     <div className="b-list">
       {data.data.items.map((it) => (
         <div className="b-list-item" key={it.address}>
-          <BlockView block={item} scope={{ ...scope, item: it }} ctx={ctx} />
+          <WidgetView widget={item} scope={{ ...scope, item: it }} ctx={ctx} />
         </div>
       ))}
     </div>
   );
 }
 
-function TreeBlock({ block, scope, ctx }: { block: Extract<Block, { block: "tree" }>; scope: Scope; ctx: RenderCtx }) {
-  const root = resolveValue(block.root, scope);
-  const sort = sortOf(block.sort, scope, "top");
-  const q = { root: root ?? "", types: block.types, sort, depth: block.depth ?? 6, ...(block.score ? { score: block.score } : {}) };
+function TreeWidget({ widget, scope, ctx }: { widget: Extract<Widget, { widget: "tree" }>; scope: Scope; ctx: RenderCtx }) {
+  const root = resolveValue(widget.root, scope);
+  const sort = sortOf(widget.sort, scope, "top");
+  const q = { root: root ?? "", types: widget.types, sort, depth: widget.depth ?? 6, ...(widget.score ? { score: widget.score } : {}) };
   const data = useData(root ? `tree:${JSON.stringify(q)}` : null, () => api.tree(q));
   if (!root) return null;
   if (data.error) return <div className="error">{data.error.message}</div>;
   if (!data.data) return <div className="muted">Loading…</div>;
-  if (data.data.items.length === 0) return <div className="muted empty">{block.empty ?? "Nothing yet."}</div>;
-  const item = block.item ?? { block: "event" as const };
+  if (data.data.items.length === 0) return <div className="muted empty">{widget.empty ?? "Nothing yet."}</div>;
+  const item = widget.item ?? { widget: "event" as const };
   const level = (items: readonly ItemJson[]): ReactNode => (
     <div className="b-tree">
       {items.map((it) => (
         <div className="b-tree-node" key={it.address}>
-          <BlockView block={item} scope={{ ...scope, item: it }} ctx={ctx} />
+          <WidgetView widget={item} scope={{ ...scope, item: it }} ctx={ctx} />
           {it.replies && it.replies.length > 0 && level(it.replies)}
         </div>
       ))}
@@ -182,25 +182,25 @@ function TreeBlock({ block, scope, ctx }: { block: Extract<Block, { block: "tree
   return level(data.data.items);
 }
 
-function ItemBlock({ block, scope, ctx }: { block: Extract<Block, { block: "item" }>; scope: Scope; ctx: RenderCtx }) {
-  const of = resolveValue(block.of, scope);
-  const data = useData(of ? `item:${of}:${block.score ?? ""}` : null, () => api.item(of!, block.score));
+function ItemWidget({ widget, scope, ctx }: { widget: Extract<Widget, { widget: "item" }>; scope: Scope; ctx: RenderCtx }) {
+  const of = resolveValue(widget.of, scope);
+  const data = useData(of ? `item:${of}:${widget.score ?? ""}` : null, () => api.item(of!, widget.score));
   if (!of) return null;
   if (data.error) return <div className="error">{(data.error as { status?: number }).status === 410 ? "This was deleted by its author." : data.error.message}</div>;
   if (!data.data) return <div className="muted">Loading…</div>;
   const inner = { ...scope, item: data.data };
-  return <div className="b-stack" style={{ gap: "8px" }}>{block.children.map((c, i) => <BlockView key={i} block={c} scope={inner} ctx={ctx} />)}</div>;
+  return <div className="b-stack" style={{ gap: "8px" }}>{widget.children.map((c, i) => <WidgetView key={i} widget={c} scope={inner} ctx={ctx} />)}</div>;
 }
 
-function EventBlock({ block, scope, ctx }: { block: Extract<Block, { block: "event" }>; scope: Scope; ctx: RenderCtx }) {
-  const of = block.of === undefined || block.of === "$item" ? scope.item?.address : resolveValue(block.of, scope);
+function EventWidget({ widget, scope, ctx }: { widget: Extract<Widget, { widget: "event" }>; scope: Scope; ctx: RenderCtx }) {
+  const of = widget.of === undefined || widget.of === "$item" ? scope.item?.address : resolveValue(widget.of, scope);
   const inScope = scope.item && scope.item.address === of ? scope.item : undefined;
   const data = useData(of && !inScope ? `item:${of}` : null, () => api.item(of!));
   const item = inScope ?? data.data;
   if (!of) return null;
   if (data.error) return <div className="error">{(data.error as { status?: number }).status === 410 ? "This was deleted by its author." : data.error.message}</div>;
   if (!item) return <div className="muted">Loading…</div>;
-  return <EventCard item={item} ctx={ctx} typeView={block.typeView} controls={block.controls ?? false} />;
+  return <EventCard item={item} ctx={ctx} typeView={widget.typeView} controls={widget.controls ?? false} />;
 }
 
 /** One event, rendered through the type-view fallback chain (05 §4), with author controls. */
@@ -217,7 +217,7 @@ export function EventCard({ item, ctx, typeView, controls }: { item: ItemJson; c
   switch (r.kind) {
     case "typeView": body = <TypeViewBody address={r.address} scope={scope} ctx={ctx} schema={type?.schema} />; break;
     case "template": body = <div className="b-text title">{renderTemplate(r.template, scope)}</div>; break;
-    case "auto": body = <BlockView block={autoLayout(r.schema, null)} scope={scope} ctx={ctx} />; break;
+    case "auto": body = <WidgetView widget={autoLayout(r.schema, null)} scope={scope} ctx={ctx} />; break;
     case "raw": body = <pre className="raw">{JSON.stringify(item.head.payload, null, 2)}</pre>; break;
   }
 
@@ -261,12 +261,12 @@ export function Unpublished({ published }: { published: boolean }) {
 
 function TypeViewBody({ address, scope, ctx, schema }: { address: string; scope: Scope; ctx: RenderCtx; schema: { readonly [k: string]: JsonValue } | undefined }) {
   const data = useData(`exact:${address}`, () => fetchExact(address), { live: false });
-  if (data.error || (data.data && !data.data.valid)) return schema ? <BlockView block={autoLayout(schema, null)} scope={scope} ctx={ctx} /> : null;
+  if (data.error || (data.data && !data.data.valid)) return schema ? <WidgetView widget={autoLayout(schema, null)} scope={scope} ctx={ctx} /> : null;
   if (!data.data) return <div className="muted">…</div>;
   const p = data.data.event.payload;
-  const parsed = parseBlock(isObj(p) ? p.layout : undefined);
+  const parsed = parseWidget(isObj(p) ? p.layout : undefined);
   if (!parsed.value) return <ConfigError title={`Type view ${address} has errors`} errors={parsed.errors} />;
-  return <BlockView block={parsed.value} scope={scope} ctx={ctx} />;
+  return <WidgetView widget={parsed.value} scope={scope} ctx={ctx} />;
 }
 
 function useAction(action: string, ctx: RenderCtx) {

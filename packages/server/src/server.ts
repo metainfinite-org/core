@@ -88,10 +88,14 @@ export async function buildServer(o: ServerOptions): Promise<FastifyInstance> {
     return s;
   };
 
+  // features.config_apps off (09): only native apps are shown, and the App Maker is hidden.
+  // The config path stays in the code and its tests; it is parked, not removed.
+  const configApps = node.config.features.configApps;
+  const shown = (native: string | null) => (configApps ? true : native !== null && native !== "app-maker");
   const tools: Record<string, string> = {};
   for (const ident of node.plan.identities) {
-    const k = reads.kernelOf(ident.id);
-    if (k) tools[k] = ident.id.toString();
+    const k = reads.nativeOf(ident.id);
+    if (k && shown(k)) tools[k] = ident.id.toString();
   }
   const genesisTypes: Record<string, string> = {};
   for (const [sym, v] of node.plan.symbols) if (sym.startsWith("@type:")) genesisTypes[sym.slice(6)] = v;
@@ -108,6 +112,7 @@ export async function buildServer(o: ServerOptions): Promise<FastifyInstance> {
     signIn: node.config.signIn,
     deployment: node.config.name,
     tools,
+    features: { configApps },
     genesisTypes,
   });
 
@@ -235,12 +240,13 @@ export async function buildServer(o: ServerOptions): Promise<FastifyInstance> {
     const me = sessionOf(req);
     const mine = new Set(me === null ? [] : await idm.controlled(me));
     reply.header("cache-control", me === null ? SHORT : PRIVATE);
-    return { apps: reads.apps(mine) };
+    return { apps: reads.apps(mine).filter((a) => shown(a.native)) };
   });
 
   app.get<{ Params: { app: string } }>("/api/apps/:app/config", async (req, reply) => {
     const cfg = reads.appConfig(idParam(req.params.app, "app"));
     if (!cfg) throw new HttpError(404, "this app has no config");
+    if (!shown(cfg.native)) throw new HttpError(404, "apps defined by config are parked on this deployment (features.config_apps: false)");
     reply.header("cache-control", SHORT);
     return cfg;
   });

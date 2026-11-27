@@ -1,5 +1,5 @@
 export * from "./api";
-export * from "./blocks";
+export * from "./widgets";
 export * from "./scope";
 export * from "./forms";
 export * from "./sort";

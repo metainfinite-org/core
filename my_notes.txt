@@ -1,19 +1,4 @@
 
-RESTART VSCODE !!!
-
-
-
-when you say "Grants can't be relayed" - maybe that should be still possible in the future for some relayable type of grant? I guess if the grant type is extensible it should be doable in the future without breaking anything from the past so we don't have to think about it from now
-
-I guess a good first candidate for non-deletable events should be all types, since the moment a type is created someone could have already used it to create an event. What did we decide about non-deletion and enforcing it - did we leave it just as a hint in the extensions of types?
-
-regarding "The "once" rule already exists as an inherited constraint on reaction" - how could we accomodate the clap reaction in medium.com where someone could clap up to 50 times - could that be a subtype of reaction which simply overrides the "once" property? and maybe also adding a max_number field? or should we have a base type reaction from which one_time reaction and multiple_times_reaction inherit from? don't do it now - I'm just asking how it could be done in the future - right now we won't be making any multiple_times_reaction reactions.
-actually I just saw that you're asking about precisely that - about repeatable reactions - what do you think about a repeatable reaction simply inheriting from apply_once_reaction and overriding that property? then there are less types - otherwise we have to think harder in advance about possible future type hierarchies - we should keep things flexible, no?
-
-is the scope: "family" stuff part of constraints?
-
-
-regarding JSON Merge Patch - is that only for text-based diffs? what about the future when we use something like CBOR - is there a way to diff those? and shouldn't the diff-ing thing be replaceable and events should be able to use different diff formats/tools?
 
 
 
@@ -23,21 +8,53 @@ regarding JSON Merge Patch - is that only for text-based diffs? what about the f
 
 
 
-actually the .md files that were imported in the beginning of this repository were generated from a claude chat with sonnet 5.5 from the claude app - you can find the manifest.json and .zip files in this directory:
-D:\stuff\claude_chat
-can you get the convo form there and prepend it to the log in this repo in the same formatting?
-you say to keep it verbatim in a separate file - why separate? Is there is a good reason (like not being able to fully match the format of the rest of the log)?
-Just make sure to not add any personal details in the log like my email or whatnot - just the chat that contributed from the start for this repo.
-Also maybe in the hook that appends to the file there should be a check if I'm leaking anything sensitive from the convo like specifics about other people or some password or whatever - and either prompt me, or simply obfuscate it automatically from the log?
-leave the append-only as a convention - no need to strictly enforce it.
-
-I also committed what's been done so far to see the next set of changes separately.
 
 
 
 
 
 
+
+I will restart vscode soon - 
+
+
+
+
+Setup github CI
+
+
+
+
+
+
+
+
+what parts of git that might be relevant are missing from my design? for example events don't include the hash of the previous event, but it's unnecessary because everything is tied cryptographically through the blockchain anyway and events are addressed with 4 integers.
+
+
+do you think a currency can be implemented on top of the events in this system? like transferring quantities from one identity to another, but off-chain? I get that the data availability isn't there (not 100% guaranteed - on a best effort basis), but I guess anything else for a currency can be implemented? also smart contracts? zero knowledge proofs? privacy?
+
+
+proxy app batchers - to optimize L1 block space - how to preserve event addresses?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+proxy IDMs - self-hosting IDM and using an on-chain IDM for your messages so that IDM doesn't have access to anything yours
+
+
+
+what do I gain from apps expressed as types/events within the system? that they're more evolvable, well defined, copyable/forkable, maintainable (if the original app host goes away), that agents within the system will be better able to interact with the system in a well defined way through approved apps?
 
 
 
@@ -91,11 +108,19 @@ can a type inherit from the meta type?
 
 Names?
 
-Js lib for ui widgets?
-
 Attest, credentials, revocation
 
+Js lib for ui widgets?
 
+
+
+== if these had a baby:
+- palantir foundry
+- git
+- blockchain
+if Palantir Foundry, git, blockchain, obsidian & social media had a baby - that's what I'm building
+and even that doesn't quite capture it
+its way crazier
 
 
 CHECK THE ENTIRE MARKDOWN ARCHITECTURE for consistency! re-read it all - don't just grep parts of it - and look for open questions and inconsistencies!
@@ -117,11 +142,8 @@ ipfs multihash
 
 
 in genesis: "Let there be light!"
-or for the meta-type: "Let there be types!"
 
 
-
-proxy app batchers - to optimize L1 block space - how to preserve event addresses?
 
 
 

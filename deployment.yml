@@ -15,8 +15,12 @@ block_interval_ms: 1000
 # "dev": pick or type a username, no password (local only). "oidc" on servers.
 sign_in: dev
 
+# Switches for parked code (09). Parked code stays in the tree with its tests;
+# switching a feature off only hides it.
+features:
+  # Apps defined by config in the log (views, actions) and the App Maker.
+  # false: only the native (hand-written) apps in the shell.
+  config_apps: false
+
 # "memory" (nothing persists) or "postgres" (needs DATABASE_URL).
 storage: postgres
-
-#DATABASE_URL: ev_dev
-

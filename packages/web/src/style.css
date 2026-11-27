@@ -121,7 +121,7 @@ details summary { cursor: pointer; margin: 4px 0; }
 .type-list button.link { font-size: 14px; }
 @media (max-width: 800px) { .maker { grid-template-columns: 1fr; } .maker-side { position: static; max-height: none; } }
 
-/* blocks */
+/* widgets */
 .app-frame { display: flex; flex-direction: column; }
 .b-stack { display: flex; flex-direction: column; min-width: 0; }
 .b-row { display: flex; flex-direction: row; min-width: 0; }

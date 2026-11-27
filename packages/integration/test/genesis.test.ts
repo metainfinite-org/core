@@ -17,7 +17,7 @@ describe("genesis", () => {
     expect(plan.symbols.get("@type:type")).toBe("1000001/1/1000001/1");
     const meta = plan.events[0]!;
     expect(formatAddress(meta.typeRef)).toBe(formatAddress(meta.address));
-    expect((meta.payload as { extensions: { genesis: { message: string } } }).extensions.genesis.message).toBe("Let there be types.");
+    expect((meta.payload as { extensions: { genesis: { message: string } } }).extensions.genesis.message).toBe("Let there be types!");
   });
 
   it("resolves symbols inside payloads", () => {

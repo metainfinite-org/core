@@ -196,10 +196,10 @@ describe("P4: Type Maker and App Maker", () => {
     expect(Object.keys(config.views)).toHaveLength(2);
     expect(Object.keys(config.actions).length).toBeGreaterThanOrEqual(4);
 
-    const apps = await get<{ apps: { id: string; mine: boolean; kernel: string | null }[] }>("/api/apps", a.cookie);
+    const apps = await get<{ apps: { id: string; mine: boolean; native: string | null }[] }>("/api/apps", a.cookie);
     const listed = apps.apps.find((x) => x.id === app)!;
     expect(listed.mine).toBe(true);
-    expect(listed.kernel).toBeNull();
+    expect(listed.native).toBeNull();
 
     // Only the custodian may change the app's config.
     const hijack = await post(b.cookie, app, { user: app, type: T("manifest"), payload: { name: "Mine now" } });
@@ -260,14 +260,35 @@ describe("P4: Type Maker and App Maker", () => {
     expect(after.manifest.address).toBe(r.json.address);
   });
 
-  it("the genesis tools are listed with their kernels; a user's copy of a kernel name is not honored", async () => {
+  it("the genesis tools are listed with their native UIs; a user's copy of a native name is not honored", async () => {
     const a = await login("alice");
-    const apps = await get<{ apps: { id: string; kernel: string | null }[] }>("/api/apps");
-    expect(apps.apps.filter((x) => x.kernel).map((x) => x.kernel).sort()).toEqual(["app-maker", "idm", "type-maker"]);
+    const apps = await get<{ apps: { id: string; native: string | null }[] }>("/api/apps");
+    expect(apps.apps.filter((x) => x.native).map((x) => x.native).sort()).toEqual(["app-maker", "idm", "type-maker"]);
     const created = (await server.inject({ method: "POST", url: "/api/idm/apps", headers: { cookie: a.cookie } })).json() as { id: string };
-    await post(a.cookie, created.id, { user: created.id, type: T("manifest"), payload: { name: "Fake maker", kernel: "type-maker" } });
+    await post(a.cookie, created.id, { user: created.id, type: T("manifest"), payload: { name: "Fake maker", native: "type-maker" } });
     const cfg = await get<AppConfigJson>(`/api/apps/${created.id}/config`);
-    expect(cfg.kernel).toBeNull();
+    expect(cfg.native).toBeNull();
+  });
+
+  it("features.config_apps: false shows only native apps and hides the App Maker", async () => {
+    const parked = await createStack({ config: parseDeploymentConfig("name: test\nfeatures:\n  config_apps: false\n"), sessionSecret: "s" });
+    try {
+      const s = parked.server;
+      const sess = (await s.inject({ url: "/api/session" })).json() as SessionJson;
+      expect(sess.features.configApps).toBe(false);
+      expect(Object.keys(sess.tools).sort()).toEqual(["idm", "type-maker"]);
+      const cookie = String((await s.inject({ method: "POST", url: "/api/auth/dev", payload: { name: "alice" } })).headers["set-cookie"]).split(";")[0]!;
+      const created = (await s.inject({ method: "POST", url: "/api/idm/apps", headers: { cookie } })).json() as { id: string };
+      const typ = sess.genesisTypes["manifest"]!;
+      expect((await s.inject({ method: "POST", url: `/api/apps/${created.id}/events`, headers: { cookie }, payload: { user: created.id, type: typ, payload: { name: "Config app" } } })).statusCode).toBe(201);
+      const apps = (await s.inject({ url: "/api/apps" })).json() as { apps: { native: string | null }[] };
+      expect(apps.apps.map((a) => a.native).sort()).toEqual(["idm", "type-maker"]);
+      expect((await s.inject({ url: `/api/apps/${created.id}/config` })).statusCode).toBe(404);
+      expect((await s.inject({ url: `/api/apps/${sess.tools["type-maker"]}/config` })).statusCode).toBe(200);
+    } finally {
+      parked.node.stop();
+      await parked.server.close();
+    }
   });
 });
 

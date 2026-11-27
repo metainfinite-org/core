@@ -236,11 +236,11 @@ export class ReadModel {
     return { row, payload: row.event.payload };
   }
 
-  /** Hand-coded implementations are honored only for apps the genesis creator owns. */
-  kernelOf(app: Id): string | null {
+  /** Native (hand-written) UIs are honored only for apps the genesis creator owns. */
+  nativeOf(app: Id): string | null {
     const m = this.manifestPayload(app);
     const owner = this.p.identities.get(app)?.owner;
-    return m && typeof m.payload.kernel === "string" && owner === this.creator ? m.payload.kernel : null;
+    return m && typeof m.payload.native === "string" && owner === this.creator ? m.payload.native : null;
   }
 
   appName(app: Id): string | undefined {
@@ -258,13 +258,13 @@ export class ReadModel {
         name: typeof m.payload.name === "string" ? m.payload.name : `app ${app}`,
         description: typeof m.payload.description === "string" ? m.payload.description : "",
         manifest: addressKey(m.row.event.address),
-        kernel: this.kernelOf(app),
+        native: this.nativeOf(app),
         owner: (this.p.identities.get(app)?.owner ?? 0n).toString(),
         mine: controlled.has(app),
       });
     }
     // Tools first, then by id.
-    out.sort((a, b) => (a.kernel ? 0 : 1) - (b.kernel ? 0 : 1) || (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
+    out.sort((a, b) => (a.native ? 0 : 1) - (b.native ? 0 : 1) || (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
     return out;
   }
 
@@ -285,7 +285,7 @@ export class ReadModel {
     return {
       app: app.toString(),
       name: typeof p.name === "string" ? p.name : `app ${app}`,
-      kernel: this.kernelOf(app),
+      native: this.nativeOf(app),
       manifest: eventToJson(m.row.event),
       views: pick([...list(p.views), ...(typeof p.home === "string" ? [p.home] : []), ...values(p.open)]),
       actions: pick(list(p.actions)),

@@ -13,7 +13,7 @@ Run from the repo root (pnpm workspaces):
 - `pnpm install`
 - `pnpm test`: all tests (Vitest). One file: `pnpm vitest run packages/integration/test/validity.test.ts`. One test: add `-t "<name substring>"`.
 - `pnpm typecheck`: `tsc --noEmit` over all packages (TypeScript 7).
-- `pnpm dev`: the API server (port 8787) plus the Vite dev server for the shell; open http://localhost:5173. `pnpm build` builds the shell into `packages/web/dist`, and `pnpm serve` runs only the API server, which also serves that build. Env: `PORT`, `HOST`, `EV_SESSION_SECRET` (random per boot if unset), `EV_LOG=1`.
+- `pnpm dev`: the API server (port 8787) plus the Vite dev server for the shell; open http://localhost:5173. `pnpm build` builds the shell into `packages/web/dist`, and `pnpm serve` runs only the API server, which also serves that build. Env: `PORT`, `HOST`, `EV_SESSION_SECRET` (random per boot if unset), `EV_LOG=1`. Parked code (config-defined apps, the App Maker) is switched off with `features.config_apps: false` in `deployment.yml`; it stays in the tree and its tests still run.
 - `pnpm start`: boots a node from `deployment.yml` and prints genesis info and the projection hash. `pnpm start demo` writes a small reddit-style scenario; `pnpm start symbols` prints the genesis symbol table.
 - **Postgres:** the app uses `DATABASE_URL` when `deployment.yml` has `storage: postgres`. The Postgres tests use a separate `EV_TEST_DATABASE_URL` and run only when it is set; they **truncate** the log and IDM tables, so it must point at a disposable database, never the one in `DATABASE_URL`.
 
@@ -34,17 +34,17 @@ One package per replaceable piece, under [packages/](packages/):
 | `config` | `deployment.yml` parsing |
 | `node` | `startNode` (store + writer with insert-time check + projector + genesis on first boot) and the CLI |
 | `idm` | The default IDM: `IdmStore` (accounts, names, custody; memory and Postgres), lazy grants, revocation, app creation |
-| `engine` | Shared by client and server: API shapes, the block whitelist and config parsing, scopes and templates, schema-generated forms and layouts, sorts, type-view fallback, app bundles and the App Maker generator |
+| `engine` | Shared by client and server: API shapes, the widget whitelist and config parsing, scopes and templates, schema-generated forms and layouts, sorts, type-view fallback, app bundles and the App Maker generator |
 | `server` | Fastify API under `/api`, signed-cookie sessions, `authorize`, the read model (`ReadModel`, `can_read`), `createStack` |
-| `web` | Vite + React: the shell (URL routing, launcher, accounts), the block renderer, the Type Maker and App Maker |
+| `web` | Vite + React: the shell (URL routing, launcher, accounts), the widget renderer, the Type Maker and App Maker |
 | `integration` | Cross-package tests and the test kit (`test/kit.ts`) |
 
-How the pieces fit: the writer appends to the log through a `LogStore` and never decides validity. The projector replays the log and asks the rule set for each event, passing it a `RuleContext` that reads the projection as of that position. The node runs the same rules before inserting, only to fail early. Protocol types (meta, grant, revoke, delete, manifest) come from the genesis plan, not from hard-coded addresses. Every derived table must be included in `Projector.hash()`, and the determinism tests compare a full rebuild with incremental catch-up. On top of that, the server wraps a node and the IDM. Every write goes through `authorize` and then the writer. The read model turns projector state into the JSON shapes from `@ev/engine`. The web client renders app config (views made of whitelisted blocks) with the same engine code.
+How the pieces fit: the writer appends to the log through a `LogStore` and never decides validity. The projector replays the log and asks the rule set for each event, passing it a `RuleContext` that reads the projection as of that position. The node runs the same rules before inserting, only to fail early. Protocol types (meta, grant, revoke, delete, manifest) come from the genesis plan, not from hard-coded addresses. Every derived table must be included in `Projector.hash()`, and the determinism tests compare a full rebuild with incremental catch-up. On top of that, the server wraps a node and the IDM. Every write goes through `authorize` and then the writer. The read model turns projector state into the JSON shapes from `@ev/engine`. The web client renders app config (views made of whitelisted widgets) with the same engine code.
 
 ## Layout of the docs
 
 - [docs/architecture/](docs/architecture/): the architecture set, files `00-README.md` to `10-in-system-social-mechanics.md`. It was written from a long design conversation.
-- [docs/conversation/log.md](docs/conversation/log.md): the append-only log of the conversation with Claude Code, written by a Stop hook ([scripts/conversation-log.mjs](scripts/conversation-log.mjs), [.claude/settings.json](.claude/settings.json)). **Don't read it unless the user explicitly asks**, and never edit it by hand. To backfill from transcripts: `node scripts/conversation-log.mjs --all <dir with session .jsonl files>`.
+- [docs/conversation/log.md](docs/conversation/log.md): the append-only log of the conversation with Claude Code, written by a Stop hook ([scripts/conversation-log.mjs](scripts/conversation-log.mjs), [.claude/settings.json](.claude/settings.json)). **Don't read it unless the user explicitly asks**, and never edit it by hand. The script redacts emails, secrets and home paths automatically; private terms go in the git-ignored `.claude/conversation-redact.txt`. To backfill from transcripts: `node scripts/conversation-log.mjs --all <dir with session .jsonl files>`.
 - [my_notes.txt](my_notes.txt): the user's raw notes and requirements. Some are in Bulgarian (transliterated). Ideas here that are not invalidated elsewhere are meant to end up in the architecture docs.
 
 ## How to work with the docs

@@ -7,7 +7,7 @@ import {
   formFields,
   hotRank,
   log2Fixed,
-  parseBlock,
+  parseWidget,
   parseView,
   payloadFromForm,
   renderTemplate,
@@ -24,30 +24,30 @@ const item = (over: Partial<ItemJson> = {}): ItemJson => ({
   ...over,
 });
 
-describe("blocks", () => {
-  it("accepts a valid tree and rejects unknown blocks, keys and values", () => {
-    expect(parseBlock({ block: "stack", children: [{ block: "text", text: "hi" }] }).errors).toEqual([]);
-    expect(parseBlock({ block: "graph" }).errors[0]).toContain("Graph Visualizer");
-    expect(parseBlock({ block: "text", text: "x", colour: "red" }).errors[0]).toContain("colour");
-    expect(parseBlock({ block: "list", query: { types: ["nope"] } }).errors[0]).toContain("type addresses");
-    expect(parseBlock({ block: "event", of: "$whatever" }).errors.length).toBe(1);
-    expect(parseBlock({ block: "button", action: "@action:up" }).errors.length).toBe(1);
-    expect(parseBlock({ block: "button", action: "@action:up" }, { symbolic: true }).errors).toEqual([]);
+describe("widgets", () => {
+  it("accepts a valid tree and rejects unknown widgets, keys and values", () => {
+    expect(parseWidget({ widget: "stack", children: [{ widget: "text", text: "hi" }] }).errors).toEqual([]);
+    expect(parseWidget({ widget: "graph" }).errors[0]).toContain("Graph Visualizer");
+    expect(parseWidget({ widget: "text", text: "x", colour: "red" }).errors[0]).toContain("colour");
+    expect(parseWidget({ widget: "list", query: { types: ["nope"] } }).errors[0]).toContain("type addresses");
+    expect(parseWidget({ widget: "event", of: "$whatever" }).errors.length).toBe(1);
+    expect(parseWidget({ widget: "button", action: "@action:up" }).errors.length).toBe(1);
+    expect(parseWidget({ widget: "button", action: "@action:up" }, { symbolic: true }).errors).toEqual([]);
   });
 
   it("bounds size and depth", () => {
-    let deep: object = { block: "text", text: "x" };
-    for (let i = 0; i < 40; i++) deep = { block: "stack", children: [deep] };
-    expect(parseBlock(deep).errors.some((e) => e.includes("deeper"))).toBe(true);
-    const wide = { block: "stack", children: Array.from({ length: 500 }, () => ({ block: "text", text: "x" })) };
-    expect(parseBlock(wide).errors.some((e) => e.includes("more than"))).toBe(true);
+    let deep: object = { widget: "text", text: "x" };
+    for (let i = 0; i < 40; i++) deep = { widget: "stack", children: [deep] };
+    expect(parseWidget(deep).errors.some((e) => e.includes("deeper"))).toBe(true);
+    const wide = { widget: "stack", children: Array.from({ length: 500 }, () => ({ widget: "text", text: "x" })) };
+    expect(parseWidget(wide).errors.some((e) => e.includes("more than"))).toBe(true);
   });
 
   it("parses views with props", () => {
-    const v = parseView({ name: "Item", props: { node: { type: "address" } }, root: { block: "event", of: "$props.node" } });
+    const v = parseView({ name: "Item", props: { node: { type: "address" } }, root: { widget: "event", of: "$props.node" } });
     expect(v.errors).toEqual([]);
     expect(v.value!.props.node!.type).toBe("address");
-    expect(parseView({ name: "x", props: { node: { type: "float" } }, root: { block: "text", text: "" } }).errors.length).toBe(1);
+    expect(parseView({ name: "x", props: { node: { type: "float" } }, root: { widget: "text", text: "" } }).errors.length).toBe(1);
   });
 });
 
@@ -89,7 +89,7 @@ describe("generated forms and layouts", () => {
 
   it("lays out an event from its schema and display template", () => {
     const b = autoLayout(schema, "{title}");
-    expect(parseBlock(b).errors).toEqual([]);
+    expect(parseWidget(b).errors).toEqual([]);
     expect(JSON.stringify(b)).toContain('"style":"title"');
   });
 });
@@ -156,8 +156,8 @@ describe("App Maker bundles", () => {
     expect(b.views.map((v) => v.key)).toEqual(["item", "home"]);
   });
 
-  it("checkBundle catches forward references and bad blocks", () => {
-    const errs = checkBundle({ actions: [], views: [{ key: "home", payload: { name: "h", root: { block: "link", text: "x", view: "@view:later" } } }], manifest: { name: "x" } });
+  it("checkBundle catches forward references and bad widgets", () => {
+    const errs = checkBundle({ actions: [], views: [{ key: "home", payload: { name: "h", root: { widget: "link", text: "x", view: "@view:later" } } }], manifest: { name: "x" } });
     expect(errs.some((e) => e.includes("used before it is defined"))).toBe(true);
   });
 });

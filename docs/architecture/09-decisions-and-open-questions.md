@@ -194,9 +194,9 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 186 | Impl | `authorize`: the session must control the user (itself, or by custody) → `user == app` needs no grant → otherwise a lazy grant from the user's owner | P | 03 §7 |
 | 187 | Impl | App config is emitted in the app's own batch (`A/b/A/s`) by the server for a custodian; no grant to the App Maker is issued (07 §7 mentions one; it isn't needed while config lives in the app's own batches) | P | 03 §8 |
 | 188 | Impl | `manifest` is a protocol type; an app's config is the newest manifest lineage it emits as itself, at its head | P | 05 §4 |
-| 189 | Impl | Genesis tool apps (IDM, Type Maker, App Maker) carry manifests whose `kernel` names their hand-coded implementation; honored only for apps the creator owns | P | 05 §6 |
-| 190 | Impl | Block whitelist v1: stack, row, grid, text, list, tree, item, event, button, form, link, view (graph reserved for the visualizer). Values: `$item`, `$props.x`, `$session.user`, literals. Templates `{field}`, `{$author}`, `{$score}`… | P | 05 §4 |
-| 191 | Impl | Config payloads: view `{name, props, root}`; action `{name, label, creates, ref, fields, fixed}`; manifest `{name, description, home, views, actions, types, open, typeViews, kernel}`; type view `{type, name, layout}` | P | 05 §4 |
+| 189 | Impl | Genesis tool apps (IDM, Type Maker, App Maker) carry manifests whose `native` (was `kernel`) names their hand-written UI in the shell; honored only for apps the creator owns | P | 05 §6 |
+| 190 | Impl | Widget whitelist v1 (called "blocks" until decision 200): stack, row, grid, text, list, tree, item, event, button, form, link, view (graph reserved for the visualizer). Values: `$item`, `$props.x`, `$session.user`, literals. Templates `{field}`, `{$author}`, `{$score}`… | P | 05 §4 |
+| 191 | Impl | Config payloads: view `{name, props, root}`; action `{name, label, creates, ref, fields, fixed}`; manifest `{name, description, home, views, actions, types, open, typeViews, native}` (`native` was `kernel` until decision 200); type view `{type, name, layout}` | P | 05 §4 |
 | 192 | Impl | App bundles use `@action:` / `@view:` placeholders, emitted actions → views → manifest; the App Maker keeps its form spec in `extensions["app-maker"]` of the manifest | P | 05 §6 |
 | 193 | Impl | `hot` in integers: sign · log2\|score\| · 2¹⁶ + seconds · 2¹⁶ / 13546 (reddit's formula in base 2), with the root's block time; scores sum over every version of an item | P | 05 §4 |
 | 194 | Impl | A type's default type view = its author's latest type view for any version of it; the Type Maker emits the type and an auto-generated type view together | P | 05 §4 |
@@ -205,7 +205,16 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | 197 | Impl | Revocation ends the current consent only: with auto-approved grants, opening the app again re-grants automatically. A per-user block list or a consent prompt comes with real consent UI **[Later]** | D | 03 §5 |
 | 198 | Impl | No empty blocks: the block producer's tick only closes the open block, and the next write opens a new block stamped with the time of that write. A restarted node always opens a fresh block. Block numbers are therefore not a clock | D | 07 §2 |
 | 199 | Auth | A grant or revoke is authored by the user whose consent it is and published in the user's own batch or its current owner's (`IDM/b/U/s`), never under another grant. An identity's owner may publish for it in the owner's batch without a grant | D | 03 §4, §5 |
-
+| 200 | Names | UI building blocks are **widgets** (`{"widget": "stack", …}`); a manifest's `native` (was `kernel`) names a hand-written UI in the shell. "Kernel" keeps its meaning: the generic core | D | 05 §5 |
+| 201 | Impl | Parked code is switched off by `features` in `deployment.yml`, not kept on branches; it stays in the tree with its tests. `features.config_apps: false`: only native apps are listed and served, the App Maker is hidden | D | 07 §11 |
+| 202 | Apps | The first apps are native (hand-written in the shell), with fixed genesis types; each keeps a minimal manifest (`name`, `description`, `native`). Config-defined apps and "anyone can make an app from types" are parked. The Type Maker stays a native genesis app | D | 05 §5, 07 §8 |
+| 203 | Edits | An edit's parent (`ref`) may be any earlier version by the same author; versions form a tree and the head is the latest in log order. The flag keeps the name `supersedes`. Moving the head back = an edit of the older version that changes nothing | D | 04 §3 |
+| 204 | Edits | Patch payloads: a format field in the envelope (absent = full payload; otherwise a patch-format type such as RFC 7396 or RFC 6902); validation on the materialized content; full payloads whenever the app chooses; no materialized hash in the event at first | P | 04 §3 |
+| 205 | Refs | Two kinds of reference query: exact (one version) and lineage (any version). Demo items and URLs name a lineage by its root | P | 04 §3 |
+| 206 | Protocol | The rules recognize protocol types (meta-type, grant, revoke, delete, manifest) by exact type, as the versions the rule set names; their subtypes stay inert until a rule version gives them meaning (e.g. expiring, scoped or relayable grants) | P | 05 §3 |
+| 207 | Types | `additionalProperties: false` closes only the type it is written on; subtypes may add fields. "No subtypes at all" would be an explicit constraint | P | 05 §3 |
+| 208 | Types | Adapter events map one type onto another; they enter shared state only through projection definitions that adopt them (socially), with their own tables, and otherwise apply at query time | P | 05 §3 |
+| 209 | Repo | The conversation (claude.ai chat, then Claude Code) is kept in `docs/conversation/log.md` by a Stop hook, append-only by convention, with emails, secrets, home paths and private terms (`.claude/conversation-redact.txt`, git-ignored) redacted automatically | D | — |
 ## 2. Withdrawn or superseded (don't re-propose without a new reason)
 
 | Idea | Replaced by |
@@ -241,6 +250,10 @@ D = decided/agreed · P = proposed, not confirmed · O = open · L = deferred to
 | Wiki workflow as the company deployment's main feature | The team builds its own types and apps |
 | An event URL that returns the latest version by default | Exact-version URL plus a separate status lookup |
 | Canonical binary encoding as a Phase-0 decision | JSON in the demos; decided in P8 |
+| Renaming the `supersedes` flag to `prev` / `parent` | The flag describes this event; `ref` is the pointer (decision 203) |
+| A rule requiring a full payload every N patches | Apps choose; partial-history nodes can't count a chain (decision 204) |
+| Protocol types closed to subtyping | Exact-type recognition; subtypes inert until a rule version (decision 206) |
+| A separate file for the claude.ai chat | One log, the claude.ai chat first |
 
 ## 3. Open questions
 
@@ -275,6 +288,9 @@ Phase-0 blockers first.
 27. **Post-quantum algorithm set** for launch — choose with a cryptographer; follow Ethereum's direction (`02` §9).
 28. **Collection contribution policy** — who may add to a collection (`10` §8).
 29. ~~**Revocation vs auto-approved lazy grants.**~~ Settled in decision 197: in the demos, using the app again simply re-grants automatically.
+30. **Repeatable reactions** (claps): move `unique` from `reaction` down to the leaf types, or named, overridable constraints (`05` §3)? Lean: move it down.
+31. **Merges** of version branches: several parents in the envelope, or a `merge` type (`04` §3)?
+32. **Patch formats** to recognize first, and whether a materialized-content hash becomes an optional envelope field (`04` §3).
 
 ## 4. Parking lot (explicitly not now)
 
